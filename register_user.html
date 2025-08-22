@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>สมัครสมาชิก (ลูกค้า)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #e3f2fd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: auto;
+            padding: 30px;
+        }
+
+        .register-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 400px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #218838;
+        }
+
+        #map {
+            height: 300px;
+            margin-top: 16px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <form class="register-box" action="register_user_process.php" method="POST">
+        <h2>สมัครสมาชิก (ลูกค้า)</h2>
+        <input type="text" name="name" placeholder="ชื่อผู้ใช้" required>
+        <input type="email" name="email" placeholder="อีเมล" required>
+        <input type="password" name="password" placeholder="รหัสผ่าน" required>
+        <input type="text" name="phone" placeholder="เบอร์โทรศัพท์" required>
+        <textarea name="address" id="address" placeholder="ที่อยู่ลูกค้า" required></textarea>
+
+        <label>ตำแหน่งของคุณ (คลิกบนแผนที่)</label>
+        <div id="map"></div>
+
+        <input type="hidden" name="latitude" id="lat">
+        <input type="hidden" name="longitude" id="lng">
+
+        <input type="submit" value="สมัครสมาชิก">
+    </form>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([15.0, 100.0], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        var marker;
+        map.on('click', function(e) {
+            // ลบหมุดเก่าออกก่อน ถ้ามี
+            if (marker) map.removeLayer(marker);
+            // สร้างหมุดใหม่ที่ตำแหน่งที่คลิก
+            marker = L.marker(e.latlng).addTo(map);
+
+            // เก็บค่า latitude และ longitude ลงในฟอร์ม
+            document.getElementById('lat').value = e.latlng.lat;
+            document.getElementById('lng').value = e.latlng.lng;
+
+            // เรียกฟังก์ชันเพื่อแปลงพิกัดเป็นที่อยู่
+            getAddressFromCoordinates(e.latlng.lat, e.latlng.lng);
+        });
+
+        // ฟังก์ชันใหม่: ดึงข้อมูลที่อยู่จากพิกัด
+        function getAddressFromCoordinates(lat, lng) {
+            const addressTextarea = document.getElementById('address');
+            // ใช้ Nominatim API ของ OpenStreetMap ในการค้นหาที่อยู่จากพิกัด
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+            
+            // ดึงข้อมูลจาก API
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        // ถ้าหาที่อยู่เจอ ให้นำมาใส่ในช่อง textarea
+                        addressTextarea.value = data.display_name;
+                    } else {
+                        // ถ้าหาไม่เจอ ให้ใส่ข้อความแจ้งเตือน
+                        addressTextarea.value = "ไม่พบข้อมูลที่อยู่";
+                    }
+                })
+                .catch(error => {
+                    // จัดการข้อผิดพลาดที่อาจเกิดขึ้น
+                    console.error('Error fetching address:', error);
+                    addressTextarea.value = "ไม่สามารถดึงข้อมูลที่อยู่ได้";
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>เข้าสู่ระบบ</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+            width: 350px;
+        }
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-box input[type="text"],
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .login-box input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login-box input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .login-box p {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .login-box a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        .login-box a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <form class="login-box" action="login.php" method="POST">
+        <h2>เข้าสู่ระบบ</h2>
+
+        <label for="username">ชื่อผู้ใช้ (หรืออีเมล)</label>
+        <input type="text" name="username" id="username" required>
+
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" name="password" id="password" required>
+<!--pattoern เช่นต้องมีตัวใหญ่ ต้องยาว 8หลัก เป็นเต้น -->
+        <input type="submit" value="เข้าสู่ระบบ">
+<!-- ทำเช็คบล็อก A gree to Terms And Conditions -->
+        <p>
+            สมัครสมาชิก:
+            <br>
+            <a href="register_user.html">ลูกค้า</a> |
+            <a href="register_shop.html">ร้านค้า</a>
+        </p>
+    </form>
+</body>
+</html>

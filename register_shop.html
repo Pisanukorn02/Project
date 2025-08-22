@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <title>สมัครร้านค้า</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #fff3cd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .register-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 350px;
+        }
+        input, label {
+            width: 100%;
+            display: block;
+            margin-bottom: 10px;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        input[type="submit"] {
+            background-color: #ffc107;
+            color: #333;
+            cursor: pointer;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        input[type="submit"]:hover {
+            background-color: #e0a800;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #map {
+            height: 300px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+        /* Style สำหรับ popup ที่แก้ไขแล้ว */
+        .popup {
+            display: none; /* เริ่มต้นด้วยการซ่อน */
+            position: fixed;
+            z-index: 1000; /* ค่า z-index สูงเพื่อให้ทับทุกอย่าง */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .popup-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-btn:hover,
+        .close-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .rules-link {
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet/dist/leaflet.css"
+    />
+</head>
+<body>
+    <form class="register-box" action="register_shop_process.php" method="POST" enctype="multipart/form-data">
+        <h2>สมัครร้านค้า</h2>
+        <input type="text" name="shop_name" placeholder="ชื่อร้านค้า" required />
+        <input type="text" name="name" placeholder="ชื่อเจ้าของร้าน" required />
+        <input type="email" name="email" placeholder="อีเมล" required />
+        <input type="password" name="password" placeholder="รหัสผ่าน" required />
+        <input type="text" name="phone" placeholder="เบอร์โทรศัพท์" required />
+        
+        <div class="form-group">
+            <label for="shop_image">รูปร้านค้า (เช่น รูปหน้าร้าน, โลโก้):</label>
+            <input type="file" id="shop_image" name="shop_image" accept="image/*" required />
+            <small style="color: #666;">อนุญาตเฉพาะไฟล์รูปภาพ (JPG, PNG, GIF) ขนาดไม่เกิน 5MB</small>
+        </div>
+        <label for="province">จังหวัด</label>
+        <select name="province" id="province" required>
+            <option value="">-- เลือกจังหวัด --</option>
+            <option value="กรุงเทพมหานคร">กรุงเทพมหานคร</option>
+            <option value="กระบี่">กระบี่</option>
+            <option value="กาญจนบุรี">กาญจนบุรี</option>
+            <option value="กาฬสินธุ์">กาฬสินธุ์</option>
+            <option value="กำแพงเพชร">กำแพงเพชร</option>
+            <option value="ขอนแก่น">ขอนแก่น</option>
+            <option value="จันทบุรี">จันทบุรี</option>
+            <option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option>
+            <option value="ชลบุรี">ชลบุรี</option>
+            <option value="ชัยนาท">ชัยนาท</option>
+            <option value="ชัยภูมิ">ชัยภูมิ</option>
+            <option value="ชุมพร">ชุมพร</option>
+            <option value="เชียงราย">เชียงราย</option>
+            <option value="เชียงใหม่">เชียงใหม่</option>
+            <option value="ตรัง">ตรัง</option>
+            <option value="ตราด">ตราด</option>
+            <option value="ตาก">ตาก</option>
+            <option value="นครนายก">นครนายก</option>
+            <option value="นครปฐม">นครปฐม</option>
+            <option value="นครพนม">นครพนม</option>
+            <option value="นครราชสีมา">นครราชสีมา</option>
+            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+            <option value="นครสวรรค์">นครสวรรค์</option>
+            <option value="นนทบุรี">นนทบุรี</option>
+            <option value="นราธิวาส">นราธิวาส</option>
+            <option value="น่าน">น่าน</option>
+            <option value="บึงกาฬ">บึงกาฬ</option>
+            <option value="บุรีรัมย์">บุรีรัมย์</option>
+            <option value="ปทุมธานี">ปทุมธานี</option>
+            <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option>
+            <option value="ปราจีนบุรี">ปราจีนบุรี</option>
+            <option value="ปัตตานี">ปัตตานี</option>
+            <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option>
+            <option value="พะเยา">พะเยา</option>
+            <option value="พังงา">พังงา</option>
+            <option value="พัทลุง">พัทลุง</option>
+            <option value="พิจิตร">พิจิตร</option>
+            <option value="พิษณุโลก">พิษณุโลก</option>
+            <option value="เพชรบุรี">เพชรบุรี</option>
+            <option value="เพชรบูรณ์">เพชรบูรณ์</option>
+            <option value="แพร่">แพร่</option>
+            <option value="ภูเก็ต">ภูเก็ต</option>
+            <option value="มหาสารคาม">มหาสารคาม</option>
+            <option value="มุกดาหาร">มุกดาหาร</option>
+            <option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option>
+            <option value="ยโสธร">ยโสธร</option>
+            <option value="ยะลา">ยะลา</option>
+            <option value="ร้อยเอ็ด">ร้อยเอ็ด</option>
+            <option value="ระนอง">ระนอง</option>
+            <option value="ระยอง">ระยอง</option>
+            <option value="ราชบุรี">ราชบุรี</option>
+            <option value="ลพบุรี">ลพบุรี</option>
+            <option value="ลำปาง">ลำปาง</option>
+            <option value="ลำพูน">ลำพูน</option>
+            <option value="เลย">เลย</option>
+            <option value="ศรีสะเกษ">ศรีสะเกษ</option>
+            <option value="สกลนคร">สกลนคร</option>
+            <option value="สงขลา">สงขลา</option>
+            <option value="สตูล">สตูล</option>
+            <option value="สมุทรปราการ">สมุทรปราการ</option>
+            <option value="สมุทรสงคราม">สมุทรสงคราม</option>
+            <option value="สมุทรสาคร">สมุทรสาคร</option>
+            <option value="สระแก้ว">สระแก้ว</option>
+            <option value="สระบุรี">สระบุรี</option>
+            <option value="สิงห์บุรี">สิงห์บุรี</option>
+            <option value="สุโขทัย">สุโขทัย</option>
+            <option value="สุพรรณบุรี">สุพรรณบุรี</option>
+            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+            <option value="สุรินทร์">สุรินทร์</option>
+            <option value="หนองคาย">หนองคาย</option>
+            <option value="หนองบัวลำภู">หนองบัวลำภู</option>
+            <option value="อ่างทอง">อ่างทอง</option>
+            <option value="อำนาจเจริญ">อำนาจเจริญ</option>
+            <option value="อุดรธานี">อุดรธานี</option>
+            <option value="อุตรดิตถ์">อุตรดิตถ์</option>
+            <option value="อุทัยธานี">อุทัยธานี</option>
+            <option value="อุบลราชธานี">อุบลราชธานี</option>
+        </select>
+
+        <input type="text" name="address" id="address" placeholder="ที่อยู่ร้านค้า" required />
+        
+        <label for="map">ตำแหน่งร้าน (คลิกเพื่อปักหมุด)</label>
+        <div id="map"></div>
+
+        <input type="hidden" name="latitude" id="lat" required />
+        <input type="hidden" name="longitude" id="lng" required />
+<div style="margin-top: 10px;">
+    <input type="checkbox" id="acceptRules" />
+    <label for="acceptRules">ฉันยอมรับ<a href="#" class="rules-link" id="showRules">กฎและเงื่อนไขของระบบ</a></label>
+</div>
+        <input type="submit" value="ลงทะเบียนร้านค้า" id="submitBtn" disabled />
+
+    </form>
+    <div id="rulesPopup" class="popup">
+      <div class="popup-content">
+        <span class="close-btn">&times;</span>
+        <h2>ข้อตกลงและเงื่อนไขการใช้บริการ</h2>
+        <p>1. **การสมัครสมาชิก:** ผู้สมัครต้องให้ข้อมูลที่เป็นจริงและถูกต้องครบถ้วนในการลงทะเบียน</p>
+        <p>2. **การใช้งาน:** ห้ามใช้บริการในทางที่ผิดกฎหมายหรือละเมิดสิทธิของผู้อื่น</p>
+        <p>3. **การรับผิดชอบ:** เจ้าของร้านมีหน้าที่รับผิดชอบต่อสินค้าและข้อมูลที่เผยแพร่</p>
+        <p>4. **การยกเลิกบริการ:** ระบบขอสงวนสิทธิ์ในการยกเลิกบัญชีผู้ใช้งาน หากพบการกระทำที่ผิดเงื่อนไข</p>
+        <p><em>(ข้อความกฎและเงื่อนไขเพิ่มเติมสามารถเพิ่มได้ที่นี่)</em></p>
+      </div>
+    </div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([16.8, 100.3], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker;
+        map.on('click', function(e) {
+            if (marker) {
+                marker.setLatLng(e.latlng);
+            } else {
+                marker = L.marker(e.latlng).addTo(map);
+            }
+            document.getElementById('lat').value = e.latlng.lat;
+            document.getElementById('lng').value = e.latlng.lng;
+            
+            // เรียกฟังก์ชันเพื่อค้นหาที่อยู่จากพิกัด
+            getAddress(e.latlng.lat, e.latlng.lng);
+        });
+
+        // ฟังก์ชันใหม่: ค้นหาที่อยู่จากพิกัด
+        function getAddress(lat, lng) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const addressField = document.getElementById('address');
+                    if (data && data.display_name) {
+                        addressField.value = data.display_name;
+                    } else {
+                        addressField.value = "ไม่พบข้อมูลที่อยู่";
+                    }
+                })
+                .catch(error => {
+                    console.error('เกิดข้อผิดพลาดในการดึงข้อมูลที่อยู่:', error);
+                    document.getElementById('address').value = "ไม่สามารถดึงข้อมูลที่อยู่ได้";
+                });
+        }
+
+        const checkbox = document.getElementById("acceptRules");
+        const submitBtn = document.getElementById("submitBtn");
+        const rulesLink = document.getElementById("showRules");
+        const rulesPopup = document.getElementById("rulesPopup");
+        const closeBtn = document.querySelector(".close-btn");
+
+        checkbox.addEventListener("change", function () {
+            submitBtn.disabled = !this.checked;
+        });
+
+        // เปิด popup เมื่อคลิกลิงก์
+        rulesLink.addEventListener("click", function(event) {
+            event.preventDefault();
+            rulesPopup.style.display = "flex";
+        });
+
+        // ปิด popup เมื่อคลิกปุ่มปิด
+        closeBtn.addEventListener("click", function() {
+            rulesPopup.style.display = "none";
+        });
+
+        // ปิด popup เมื่อคลิกนอกกรอบ
+        window.addEventListener("click", function(event) {
+            if (event.target == rulesPopup) {
+                rulesPopup.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
