@@ -411,6 +411,75 @@ if (isset($_SESSION['user_id'])) {
     background-color: #e0a800;
 }
 
+/* แทนที่ CSS ของ .shop-image เดิมด้วยโค้ดนี้ */
+
+.shop-info {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    border: 1px solid #e3f2fd;
+    position: relative; /* เพิ่มเพื่อให้จัดตำแหน่งได้ */
+}
+
+.shop-image {
+    position: absolute;    /* ให้รูปลอยอยู่ในตำแหน่งที่กำหนด */
+    top: 30px;            /* ระยะห่างจากด้านบน */
+    right: 30px;          /* ระยะห่างจากด้านขวา */
+    width: 120px;         /* ขนาดรูป */
+    height: 120px;        /* ความสูงเท่ากับความกว้าง */
+    overflow: hidden;
+    border-radius: 15px;  /* เปลี่ยนจาก 50% เป็น 15px เพื่อให้เป็นสี่เหลี่ยมมุมโค้ง */
+    border: 3px solid #42a5f5;  /* เปลี่ยนสีขอบให้เข้ากับธีม */
+    box-shadow: 0 4px 15px rgba(66, 165, 245, 0.3);
+    z-index: 1;           /* ให้รูปอยู่ข้างหน้า */
+}
+
+.shop-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;    /* ปรับให้รูปเต็มกรอบโดยไม่เบี้ยว */
+    display: block;
+}
+
+/* ปรับให้เนื้อหาไม่ทับกับรูป */
+.shop-info h2 {
+    color: #1565c0;
+    font-size: 2em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 140px;  /* เว้นที่ว่างสำหรับรูป */
+}
+
+.shop-info .info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9ff;
+    border-radius: 10px;
+    border-left: 4px solid #42a5f5;
+    margin-right: 140px;  /* เว้นที่ว่างสำหรับรูป */
+}
+
+/* สำหรับหน้าจอมือถือ */
+@media (max-width: 768px) {
+    .shop-image {
+        position: static;     /* ยกเลิกการลอย */
+        margin: 0 auto 20px auto;  /* จัดกึ่งกลาง */
+        width: 100px;
+        height: 100px;
+    }
+    
+    .shop-info h2,
+    .shop-info .info-item {
+        margin-right: 0;      /* ยกเลิกการเว้นที่ว่าง */
+    }
+}
+
     </style>
 </head>
 <body>
@@ -423,6 +492,13 @@ if (isset($_SESSION['user_id'])) {
     <div class="container">
         <!-- ข้อมูลร้าน -->
         <div class="shop-info">
+            <!-- รูปภาพร้าน -->
+        <?php if (!empty($shop['shop_image'])): ?>
+            <div class="shop-image">
+                <img src="uploads/shop_images/<?= htmlspecialchars($shop['shop_image']) ?>" alt="<?= htmlspecialchars($shop['shop_name']) ?>">
+            </div>
+        <?php endif; ?>
+        
             <h2><i class="fas fa-store-alt"></i> <?= htmlspecialchars($shop['shop_name']) ?></h2>
             <div class="info-item">
                 <i class="fas fa-map-marker-alt"></i>

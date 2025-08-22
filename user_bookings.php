@@ -57,7 +57,30 @@ $result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b
         <td><?= htmlspecialchars($row['service_name']) ?></td>
         <td><?= $row['booking_date'] ?> <?= $row['booking_time'] ?></td>
         <td><?= htmlspecialchars($row['address']) ?></td>
-        <td><?= htmlspecialchars($row['status']) ?></td>
+        <td>
+    <?php
+    $status_text = '';
+    switch ($row['status']) {
+        case 'pending':
+            $status_text = 'รอการตอบรับจากร้านค้า';
+            break;
+        case 'accepted':
+            $status_text = 'ร้านค้ารับงานแล้ว';
+            break;
+        case 'completed':
+            $status_text = 'งานเสร็จสิ้น';
+            break;
+        case 'rejected':
+            $status_text = 'ถูกร้านค้าปฏิเสธ';
+            break;
+        default:
+            $status_text = htmlspecialchars($row['status']); // หรือ "ไม่ทราบสถานะ"
+            break;
+    }
+    echo $status_text;
+    ?>
+</td>
+
         <td>
     <?php if ($row['payment_slip']): ?>
         <?php 

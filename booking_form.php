@@ -58,161 +58,233 @@ if ($from_cart) {
     $services = [$service];
 }
 
-// ตรวจสอบว่าบริการทั้งหมดมาจากร้านเดียวกันไหม (เพื่อกำหนดพิกัดร้านเดียวกัน)
+// ตรวจสอบว่าบริการทั้งหมดมาจากร้านเดียวกันไหม
 $shop_ids = array_unique(array_column($services, 'shop_id'));
 if (count($shop_ids) > 1) {
     echo "บริการที่เลือกมาจากร้านหลายร้าน ไม่รองรับการจองพร้อมกัน";
     exit();
 }
-$shop = $services[0]; // เอาข้อมูลร้านจากบริการแรก (สมมุติเดียวกันหมด)
+$shop = $services[0]; 
 
 $total_price = 0;
 foreach ($services as $s) {
     $total_price += $s['price'];
 }
+
+$user_id = $_SESSION['user_id'];
+$stmt = $conn->prepare("SELECT name, phone, address, latitude, longitude FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$stmt->close();
+
+$userLat = $user['latitude'] ?: 13.7563;
+$userLng = $user['longitude'] ?: 100.5018;
 ?>
 
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>จองบริการชุดเดียว</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-    <style>
-        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-        .form-container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, textarea, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; }
-        input[type="submit"] { background: #28a745; color: white; cursor: pointer; }
-        input[type="submit"]:hover { background: #218838; }
-        #map { height: 350px; margin-bottom: 15px; }
-        ul.service-list { margin-bottom: 15px; }
-        ul.service-list li { margin-bottom: 5px; }
-        #distance_info { font-weight: bold; margin-bottom: 15px; }
-    </style>
+<meta charset="UTF-8">
+<title>จองบริการชุดเดียว</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<style>
+body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+.form-container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+label { display: block; margin-bottom: 5px; font-weight: bold; }
+input, textarea, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; }
+input[type="submit"] { background: #28a745; color: white; cursor: pointer; }
+input[type="submit"]:hover { background: #218838; }
+#map { height: 350px; margin-bottom: 15px; }
+ul.service-list { margin-bottom: 15px; }
+ul.service-list li { margin-bottom: 5px; }
+#distance_info { font-weight: bold; margin-bottom: 15px; }
+</style>
 </head>
 <body>
 
 <div class="form-container">
-    <h2>จองบริการชุดเดียว</h2>
-    <h3>รายการบริการที่เลือก</h3>
-    <ul class="service-list">
-    <?php $i = 1; foreach ($services as $s): ?>
-        <li><?= $i ?>. <?= htmlspecialchars($s['service_name']) ?> - <?= number_format($s['price'], 2) ?> บาท</li>
-    <?php $i++; endforeach; ?>
-    </ul>
-    <p><strong>รวมราคา: <?= number_format($total_price, 2) ?> บาท</strong></p>
-    <p><strong>ร้าน: <?= htmlspecialchars($shop['shop_name']) ?></strong></p>
+<h2>จองบริการชุดเดียว</h2>
 
-    <form action="booking_process.php" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="shop_id" value="<?= $shop['shop_id'] ?>">
-        
-        <?php foreach ($services as $s): ?>
-            <input type="hidden" name="service_id[]" value="<?= $s['service_id'] ?>">
-        <?php endforeach; ?>
+<h3>รายการบริการที่เลือก</h3>
+<ul class="service-list">
+<?php $i = 1; foreach ($services as $s): ?>
+    <li><?= $i ?>. <?= htmlspecialchars($s['service_name']) ?> - <?= number_format($s['price'], 2) ?> บาท</li>
+<?php $i++; endforeach; ?>
+</ul>
+<p><strong>รวมราคา: <?= number_format($total_price, 2) ?> บาท</strong></p>
+<p><strong>ร้าน: <?= htmlspecialchars($shop['shop_name']) ?></strong></p>
 
-        <label for="customer_name">ชื่อลูกค้า</label>
-        <input type="text" name="customer_name" id="customer_name" required>
+<form action="booking_process.php" method="POST" enctype="multipart/form-data" id="bookingForm">
+<input type="hidden" name="shop_id" value="<?= $shop['shop_id'] ?>">
+<?php foreach ($services as $s): ?>
+<input type="hidden" name="service_id[]" value="<?= $s['service_id'] ?>">
+<?php endforeach; ?>
 
-        <label for="customer_phone">เบอร์โทร</label>
-        <input type="text" name="customer_phone" id="customer_phone" required>
+<label>ชื่อลูกค้า</label>
+<input type="text" name="customer_name" value="<?= htmlspecialchars($user['name']) ?>" readonly>
 
-        <label for="booking_date">วันที่ต้องการใช้บริการ</label>
-        <input type="date" name="booking_date" id="booking_date" required>
+<label>เบอร์โทร</label>
+<input type="text" name="customer_phone" value="<?= htmlspecialchars($user['phone']) ?>" readonly>
 
-        <label for="booking_time">เวลาที่ต้องการใช้บริการ</label>
-        <input type="time" name="booking_time" id="booking_time" required>
+<label for="booking_date">วันที่ต้องการใช้บริการ</label>
+<input type="date" name="booking_date" id="booking_date" required>
 
-        <label for="address">ที่อยู่ (รายละเอียดสถานที่ติดตั้ง/ล้างแอร์)</label>
-        <textarea name="address" id="address" rows="3" required></textarea>
+<label for="booking_time">เวลาที่ต้องการใช้บริการ</label>
+<select id="booking_time" name="booking_time" required></select>
 
-        <label>ตำแหน่งสถานที่ให้บริการ (ลากหมุดหรือคลิกบนแผนที่)</label>
-        <div id="map"></div>
-        <div id="distance_info">คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน</div>
-        <input type="hidden" name="location_lat" id="lat" required>
-        <input type="hidden" name="location_lng" id="lng" required>
+<script>
+const bookingTimeSelect = document.getElementById('booking_time');
 
-        <label for="payment_slip">รูปสถานที่ที่ต้องการใช้บริการ</label>
-        <input type="file" name="payment_slip" id="payment_slip" accept="image/*" required>
+// กำหนดเวลาเริ่ม 08:00 ถึง 17:00
+for (let h = 8; h <= 17; h++) {
+    for (let m = 0; m < 60; m += 5) { // เพิ่มทีละ 5 นาที
+        const option = document.createElement('option');
+        const hourStr = h.toString().padStart(2,'0');
+        const minStr = m.toString().padStart(2,'0');
+        option.value = `${hourStr}:${minStr}`;
+        option.textContent = `${hourStr}:${minStr}`;
+        bookingTimeSelect.appendChild(option);
+    }
+}
+</script>
 
-        <input type="submit" value="ยืนยันการจอง">
-    </form>
 
+<label>ที่อยู่</label>
+<textarea name="address" rows="3" readonly><?= htmlspecialchars($user['address']) ?></textarea>
+
+<label>ตำแหน่งสถานที่ให้บริการ (ลากหมุดหรือคลิกบนแผนที่)</label>
+<div id="map"></div>
+<div id="distance_info">คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน</div>
+<input type="hidden" name="location_lat" id="lat" required>
+<input type="hidden" name="location_lng" id="lng" required>
+
+<label for="payment_slip">รูปสถานที่ที่ต้องการใช้บริการ</label>
+<input type="file" name="payment_slip" id="payment_slip" accept="image/*" required>
+
+<input type="submit" value="ยืนยันการจอง">
+</form>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
-    const shopLat = <?= $shop['shop_lat'] ?>;
-    const shopLng = <?= $shop['shop_lng'] ?>;
-    var map = L.map('map').setView([shopLat, shopLng], 13);
+const shopLat = <?= $shop['shop_lat'] ?>;
+const shopLng = <?= $shop['shop_lng'] ?>;
+const userLat = <?= $userLat ?>;
+const userLng = <?= $userLng ?>;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+var map = L.map('map').setView([userLat, userLng], 13);
 
-    var shopMarker = L.marker([shopLat, shopLng]).addTo(map)
-        .bindPopup("ร้าน <?= htmlspecialchars($shop['shop_name']) ?>")
-        .openPopup();
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
-    // กำหนดตำแหน่งเริ่มต้นหมุดผู้ใช้เป็นตำแหน่งร้าน
-    var defaultLatLng = L.latLng(shopLat, shopLng);
-    var userMarker = L.marker(defaultLatLng, { draggable: true }).addTo(map)
-        .bindPopup("ตำแหน่งคุณ (ตำแหน่งที่ต้องการใช้บริการ)").openPopup();
+var shopMarker = L.marker([shopLat, shopLng]).addTo(map)
+    .bindPopup("ร้าน <?= htmlspecialchars($shop['shop_name']) ?>").openPopup();
 
-    // ตั้งค่า input hidden lat lng เป็นค่าเริ่มต้น
-    document.getElementById('lat').value = defaultLatLng.lat;
-    document.getElementById('lng').value = defaultLatLng.lng;
+var userMarker = L.marker([userLat, userLng], { draggable: true }).addTo(map)
+    .bindPopup("ตำแหน่งคุณ (ตำแหน่งที่ต้องการใช้บริการ)").openPopup();
 
-    // ฟังก์ชันคำนวณระยะทางและแสดงผล พร้อมเช็คระยะทางเกิน 30 กม.
-    function updateDistance(latlng) {
-        const distance = getDistanceFromLatLonInKm(shopLat, shopLng, latlng.lat, latlng.lng);
-        document.getElementById('distance_info').textContent = `ระยะทางจากร้าน: ${distance.toFixed(2)} กิโลเมตร (พื้นที่ให้บริการ: สูงสุด 30 กม.)`;
+function updateDistance(latlng) {
+    const distance = getDistanceFromLatLonInKm(shopLat, shopLng, latlng.lat, latlng.lng);
+    document.getElementById('distance_info').textContent = `ระยะทางจากร้าน: ${distance.toFixed(2)} กม. (สูงสุด 30 กม.)`;
 
-        if (distance > 30) {
-            alert("ขออภัย พื้นที่อยู่นอกเขตให้บริการของร้าน (เกิน 30 กม.)");
-            // รีเซ็ตตำแหน่งหมุดกลับไปที่ร้าน
-            userMarker.setLatLng(defaultLatLng);
-            document.getElementById('lat').value = defaultLatLng.lat;
-            document.getElementById('lng').value = defaultLatLng.lng;
-            document.getElementById('distance_info').textContent = "คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน";
-        } else {
-            // กำหนดค่าพิกัดใหม่ใน hidden input
-            document.getElementById('lat').value = latlng.lat;
-            document.getElementById('lng').value = latlng.lng;
-        }
+    if(distance > 30) {
+        alert("ขออภัย พื้นที่อยู่นอกเขตให้บริการของร้าน (เกิน 30 กม.)");
+        userMarker.setLatLng([shopLat, shopLng]);
+        document.getElementById('lat').value = shopLat;
+        document.getElementById('lng').value = shopLng;
+        document.getElementById('distance_info').textContent = "คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน";
+    } else {
+        document.getElementById('lat').value = latlng.lat;
+        document.getElementById('lng').value = latlng.lng;
     }
+}
 
-    // แสดงระยะทางตั้งแต่โหลดหน้า
-    updateDistance(defaultLatLng);
-
-    // เมื่อหมุดถูกลากเสร็จ ให้คำนวณระยะทางใหม่
-    userMarker.on('dragend', function(e) {
-        updateDistance(e.target.getLatLng());
-    });
-
-    // ถ้าต้องการให้คลิกบนแผนที่ก็เปลี่ยนตำแหน่งหมุดได้
-    map.on('click', function(e) {
-        userMarker.setLatLng(e.latlng);
-        updateDistance(e.latlng);
-        userMarker.openPopup();
-    });
-
-    // ฟังก์ชันคำนวณระยะทางระหว่าง 2 จุด (กิโลเมตร)
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-        const R = 6371; // รัศมีโลก กม.
-        const dLat = deg2rad(lat2 - lat1);
-        const dLon = deg2rad(lon2 - lon1);
-        const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-            Math.sin(dLon/2)*Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
+// ตรวจสอบตำแหน่งเริ่มต้น
+function checkInitialPosition() {
+    const initialDistance = getDistanceFromLatLonInKm(shopLat, shopLng, userLat, userLng);
+    if(initialDistance > 30){
+        alert("ตำแหน่งเริ่มต้นของคุณอยู่นอกพื้นที่ให้บริการของร้าน (เกิน 30 กม.)");
+        userMarker.setLatLng([shopLat, shopLng]);
+        document.getElementById('lat').value = shopLat;
+        document.getElementById('lng').value = shopLng;
+        document.getElementById('distance_info').textContent = "คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน";
+    } else {
+        updateDistance(userMarker.getLatLng());
     }
+}
 
-    function deg2rad(deg) {
-        return deg * (Math.PI/180);
-    }
+// ตั้งค่า hidden input
+document.getElementById('lat').value = userLat;
+document.getElementById('lng').value = userLng;
+
+checkInitialPosition();
+
+// ลากหมุด
+userMarker.on('dragend', function(e) {
+    updateDistance(e.target.getLatLng());
+});
+
+// คลิกเปลี่ยนตำแหน่ง
+map.on('click', function(e) {
+    userMarker.setLatLng(e.latlng);
+    updateDistance(e.latlng);
+    userMarker.openPopup();
+});
+
+function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2){
+    const R=6371;
+    const dLat=deg2rad(lat2-lat1);
+    const dLon=deg2rad(lon2-lon1);
+    const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+    const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    return R*c;
+}
+function deg2rad(deg){ return deg*(Math.PI/180); }
 </script>
+
+<script>
+const hourSelect = document.getElementById('booking_hour');
+const minuteSelect = document.getElementById('booking_minute');
+
+// เติมชั่วโมงเฉพาะ 08-17
+for(let h=8; h<=17; h++){
+    const option = document.createElement('option');
+    option.value = h.toString().padStart(2,'0');
+    option.textContent = h.toString().padStart(2,'0');
+    hourSelect.appendChild(option);
+}
+
+// เติมนาที 00, 05, 10, ..., 55
+for(let m=0; m<60; m+=5){
+    const option = document.createElement('option');
+    option.value = m.toString().padStart(2,'0');
+    option.textContent = m.toString().padStart(2,'0');
+    minuteSelect.appendChild(option);
+}
+
+document.getElementById('bookingForm').addEventListener('submit', function(e){
+    const hour = parseInt(hourSelect.value);
+    const minute = parseInt(minuteSelect.value);
+    
+    // ตรวจสอบช่วงเวลา 08-17
+    if(hour < 8 || hour > 17){
+        alert("กรุณาเลือกเวลาระหว่าง 08:00 ถึง 17:00");
+        e.preventDefault();
+        return;
+    }
+
+    const timeValue = `${hourSelect.value}:${minuteSelect.value}`;
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'booking_time';
+    hiddenInput.value = timeValue;
+    e.target.appendChild(hiddenInput);
+});
+</script>
+
 
 </body>
 </html>

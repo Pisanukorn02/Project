@@ -6,6 +6,8 @@ $host = 'localhost';
 $username = 'root';
 $password = '';
 $dbname = 'air_service_db';
+date_default_timezone_set('Asia/Bangkok');
+
 
 // เชื่อมต่อกับฐานข้อมูล
 $conn = mysqli_connect($host, $username, $password, $dbname,3306);

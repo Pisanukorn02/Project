@@ -635,11 +635,12 @@ if (!isset($_SESSION['shop_name']) && $shop) {
 
     // ดึงข้อมูลจองตามสถานะและร้านค้า
     $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, s.service_name , s.service_type
-            FROM bookings b
-            JOIN users u ON b.user_id = u.user_id
-            JOIN services s ON b.service_id = s.service_id
-            WHERE b.shop_id = ? AND b.status = ?
-            ORDER BY b.created_at DESC";
+        FROM bookings b
+        JOIN users u ON b.user_id = u.user_id
+        JOIN services s ON b.service_id = s.service_id
+        WHERE b.shop_id = ? AND b.status = ?
+        ORDER BY b.booking_date ASC, b.booking_time ASC";
+
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("is", $shop_id, $status_filter);
