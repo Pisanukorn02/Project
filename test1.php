@@ -1,62 +1,3 @@
-<?php
-session_start();
-include 'config.php'; // เชื่อมต่อฐานข้อมูล
-
-// ตรวจสอบการล็อกอิน
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-
-$user_id = $_SESSION['user_id'];
-
-// --- ดึงข้อมูลผู้ใช้ ---
-$stmt = $conn->prepare("SELECT name, phone, address, latitude, longitude FROM users WHERE user_id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$stmt->bind_result($name, $phone, $address, $latitude, $longitude);
-$stmt->fetch();
-$stmt->close();
-
-// --- ดึงรีวิวของผู้ใช้ ---
-$reviews = [];
-$stmt = $conn->prepare("
-    SELECT r.rating, r.comment, r.created_at, s.service_name, sh.shop_name
-    FROM reviews r
-    JOIN bookings b ON r.booking_id = b.booking_id
-    JOIN services s ON b.service_id = s.service_id
-    JOIN shops sh ON s.shop_id = sh.shop_id
-    WHERE r.user_id = ?
-    ORDER BY r.created_at DESC
-");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $reviews[] = $row;
-}
-$stmt->close();
-
-// --- ดึงประวัติการจองของผู้ใช้ ---
-$bookings = [];
-$stmt = $conn->prepare("
-    SELECT b.booking_id, b.booking_date, b.booking_time, b.status,
-           s.service_name, sh.shop_name
-    FROM bookings b
-    JOIN services s ON b.service_id = s.service_id
-    JOIN shops sh ON b.shop_id = sh.shop_id
-    WHERE b.user_id = ?
-    ORDER BY b.booking_date DESC, b.booking_time DESC
-");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $bookings[] = $row;
-}
-$stmt->close();
-?>
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -340,25 +281,27 @@ $stmt->close();
                 <div class="form-grid">
                     <div class="form-group">
                         <label><i class="fas fa-user"></i> ชื่อ-นามสกุล</label>
-                        <input type="text" name="name" value="<?= htmlspecialchars($name) ?>" required>
+                        <input type="text" name="name" value="สมชาย ใจดี" required>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-phone"></i> เบอร์โทรศัพท์</label>
-                        <input type="text" name="phone" value="<?= htmlspecialchars($phone) ?>" required>
+                        <input type="text" name="phone" value="081-234-5678" required>
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label><i class="fas fa-map-marker-alt"></i> ที่อยู่</label>
-                    <textarea name="address" rows="3"><?= htmlspecialchars($address) ?></textarea>
+                    <textarea name="address" rows="3" placeholder="กรุณากรอกที่อยู่ของคุณ">123 หมู่ 5 ตำบลในเมือง อำเภอเมือง จังหวัดพิษณุโลก 65000</textarea>
                 </div>
 
-                
-                    <label>ตำแหน่งที่ตั้ง (ลากหมุดเพื่อเปลี่ยนตำแหน่ง)</label>
-    <div id="map"></div>
-    <input type="hidden" name="latitude" id="latitude" value="<?= htmlspecialchars($latitude) ?>">
-    <input type="hidden" name="longitude" id="longitude" value="<?= htmlspecialchars($longitude) ?>">
-
+                <div class="form-group">
+                    <label><i class="fas fa-map"></i> ตำแหน่งที่ตั้ง (คลิกหรือลากหมุดเพื่อเปลี่ยนตำแหน่ง)</label>
+                    <div class="map-container">
+                        <div id="map"></div>
+                    </div>
+                    <input type="hidden" name="latitude" id="latitude" value="16.8197">
+                    <input type="hidden" name="longitude" id="longitude" value="100.2642">
+                </div>
 
                 <button type="submit" class="btn-primary">
                     <i class="fas fa-save"></i> บันทึกข้อมูล
@@ -366,156 +309,179 @@ $stmt->close();
             </form>
         </div>
     </div>
-<!-- Reviews Section -->
-<div class="reviews-section">
-    <div class="section-header">
-        <i class="fas fa-star"></i>
-        <span>รีวิวของฉัน</span>
-    </div>
-    <div class="section-content">
-        <?php if (count($reviews) > 0): ?>
+
+    <!-- Reviews Section -->
+    <div class="reviews-section">
+        <div class="section-header">
+            <i class="fas fa-star"></i>
+            <span>รีวิวของฉัน</span>
+        </div>
+        <div class="section-content">
             <div class="reviews-grid">
-                <?php foreach ($reviews as $r): ?>
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div>
-                                <div class="service-name"><?= htmlspecialchars($r['service_name']) ?></div>
-                                <div class="shop-name"><?= htmlspecialchars($r['shop_name']) ?></div>
-                            </div>
-                            <div class="rating">
-                                <?php 
-                                    $fullStars = floor($r['rating']);
-                                    $halfStars = ($r['rating'] - $fullStars) >= 0.5 ? 1 : 0;
-                                    $emptyStars = 5 - $fullStars - $halfStars;
-
-                                    for ($i=0; $i<$fullStars; $i++) echo '<i class="fas fa-star"></i>';
-                                    if ($halfStars) echo '<i class="fas fa-star-half-alt"></i>';
-                                    for ($i=0; $i<$emptyStars; $i++) echo '<i class="far fa-star"></i>';
-                                ?>
-                                <?= $r['rating'] ?>/5
-                            </div>
+                <div class="review-card">
+                    <div class="review-header">
+                        <div>
+                            <div class="service-name">ล้างแอร์บ้าน</div>
+                            <div class="shop-name">ร้าน Cool Air Service</div>
                         </div>
-                        <div class="review-comment">
-                            <?= nl2br(htmlspecialchars($r['comment'])) ?>
-                        </div>
-                        <div class="review-date">
-                            <i class="fas fa-calendar"></i> <?= date('d/m/Y', strtotime($r['created_at'])) ?>
+                        <div class="rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            5/5
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-star"></i>
-                <p>ยังไม่มีรีวิวของคุณ</p>
-            </div>
-        <?php endif; ?>
-    </div>
-</div>
+                    <div class="review-comment">
+                        บริการดีมาก ช่างมาตรงเวลา ทำความสะอาดละเอียด แอร์เย็นดีขึ้นมาก แนะนำเลยครับ
+                    </div>
+                    <div class="review-date">
+                        <i class="fas fa-calendar"></i> 15/08/2025
+                    </div>
+                </div>
 
-
-   <!-- Bookings Section -->
-<div class="bookings-section">
-    <div class="section-header">
-        <i class="fas fa-calendar-check"></i>
-        <span>ประวัติการจอง</span>
+                <div class="review-card">
+                    <div class="review-header">
+                        <div>
+                            <div class="service-name">ซ่อมแอร์</div>
+                            <div class="shop-name">ร้าน Fix Air Pro</div>
+                        </div>
+                        <div class="rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            4/5
+                        </div>
+                    </div>
+                    <div class="review-comment">
+                        ช่างมีความรู้ดี แก้ปัญหาได้ แต่มาช้ากว่านัดหมายเล็กน้อย โดยรวมพอใจ
+                    </div>
+                    <div class="review-date">
+                        <i class="fas fa-calendar"></i> 02/08/2025
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="section-content">
-        <?php if (count($bookings) > 0): ?>
+
+    <!-- Bookings Section -->
+    <div class="bookings-section">
+        <div class="section-header">
+            <i class="fas fa-calendar-check"></i>
+            <span>ประวัติการจอง</span>
+        </div>
+        <div class="section-content">
             <div class="bookings-grid">
-                <?php foreach ($bookings as $b): ?>
-                    <?php
-                        // แปลงสถานะเป็น class CSS
-                        $statusClass = '';
-                        $statusText = '';
-                        switch ($b['status']) {
-                            case 'pending':
-                                $statusClass = 'pending';
-                                $statusText = 'รอดำเนินการ';
-                                break;
-                            case 'confirmed':
-                                $statusClass = 'confirmed';
-                                $statusText = 'ยืนยันแล้ว';
-                                break;
-                            case 'completed':
-                                $statusClass = 'completed';
-                                $statusText = 'เสร็จสิ้น';
-                                break;
-                            case 'cancelled':
-                                $statusClass = 'cancelled';
-                                $statusText = 'ยกเลิก';
-                                break;
-                        }
-                    ?>
-                    <div class="booking-card">
-                        <div class="booking-header">
-                            <div>
-                                <div class="service-name"><?= htmlspecialchars($b['service_name']) ?></div>
-                                <div class="shop-name"><?= htmlspecialchars($b['shop_name']) ?></div>
-                            </div>
-                            <div class="status <?= $statusClass ?>"><?= $statusText ?></div>
+                <div class="booking-card">
+                    <div class="booking-header">
+                        <div>
+                            <div class="service-name">ติดตั้งแอร์ใหม่</div>
+                            <div class="shop-name">ร้าน Air Master</div>
                         </div>
-                        <div class="booking-info">
-                            <div class="booking-detail">
-                                <div class="booking-detail-label">วันที่</div>
-                                <div class="booking-detail-value"><?= date('d/m/Y', strtotime($b['booking_date'])) ?></div>
-                            </div>
-                            <div class="booking-detail">
-                                <div class="booking-detail-label">เวลา</div>
-                                <div class="booking-detail-value"><?= htmlspecialchars($b['booking_time']) ?></div>
-                            </div>
-                            <div class="booking-detail">
-                                <div class="booking-detail-label">สถานะ</div>
-                                <div class="booking-detail-value"><?= $statusText ?></div>
-                            </div>
+                        <div class="status confirmed">ยืนยันแล้ว</div>
+                    </div>
+                    <div class="booking-info">
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">วันที่</div>
+                            <div class="booking-detail-value">25/08/2025</div>
+                        </div>
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">เวลา</div>
+                            <div class="booking-detail-value">09:00</div>
+                        </div>
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">สถานะ</div>
+                            <div class="booking-detail-value">รอดำเนินการ</div>
                         </div>
                     </div>
-                <?php endforeach; ?>
+                </div>
+
+                <div class="booking-card">
+                    <div class="booking-header">
+                        <div>
+                            <div class="service-name">ล้างแอร์บ้าน</div>
+                            <div class="shop-name">ร้าน Cool Air Service</div>
+                        </div>
+                        <div class="status completed">เสร็จสิ้น</div>
+                    </div>
+                    <div class="booking-info">
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">วันที่</div>
+                            <div class="booking-detail-value">15/08/2025</div>
+                        </div>
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">เวลา</div>
+                            <div class="booking-detail-value">14:00</div>
+                        </div>
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">สถานะ</div>
+                            <div class="booking-detail-value">เสร็จสิ้น</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="booking-card">
+                    <div class="booking-header">
+                        <div>
+                            <div class="service-name">ซ่อมแอร์</div>
+                            <div class="shop-name">ร้าน Fix Air Pro</div>
+                        </div>
+                        <div class="status completed">เสร็จสิ้น</div>
+                    </div>
+                    <div class="booking-info">
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">วันที่</div>
+                            <div class="booking-detail-value">02/08/2025</div>
+                        </div>
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">เวลา</div>
+                            <div class="booking-detail-value">10:30</div>
+                        </div>
+                        <div class="booking-detail">
+                            <div class="booking-detail-label">สถานะ</div>
+                            <div class="booking-detail-value">เสร็จสิ้น</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <p>คุณยังไม่มีการจอง</p>
-            </div>
-        <?php endif; ?>
+        </div>
     </div>
 </div>
-
 
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
     // Initialize map with Phitsanulok coordinates
-    var lat = <?= $latitude ?: 13.7563 ?>;
-var lng = <?= $longitude ?: 100.5018 ?>;
-var map = L.map('map').setView([lat, lng], 13);
+    var lat = 16.8197;
+    var lng = 100.2642;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+    var map = L.map('map').setView([lat, lng], 13);
 
-// สร้าง marker draggable
-var marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-// ฟังก์ชันอัปเดตค่าลง input hidden
-function updateInputs(latlng){
-    document.getElementById('latitude').value = latlng.lat;
-    document.getElementById('longitude').value = latlng.lng;
-}
+    var customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"><i class="fas fa-map-marker-alt"></i></div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30]
+    });
 
-// อัปเดตค่าตอนเริ่มต้น
-updateInputs(marker.getLatLng());
+    var marker = L.marker([lat, lng], {
+        draggable: true,
+        icon: customIcon
+    }).addTo(map);
 
-// ถ้าลาก marker ให้ update
-marker.on('dragend', function(e){
-    updateInputs(e.target.getLatLng());
-});
-
-// ถ้าคลิกบน map ให้ marker ย้ายไปตำแหน่งนั้น
-map.on('click', function(e){
-    marker.setLatLng(e.latlng);
-    updateInputs(e.latlng);
-});
-
+    // Click on map to move marker
+    map.on('click', function(e) {
+        var newLatLng = e.latlng;
+        marker.setLatLng(newLatLng);
+        document.getElementById('latitude').value = newLatLng.lat;
+        document.getElementById('longitude').value = newLatLng.lng;
+    });
 
     // Drag marker
     marker.on('dragend', function(e) {
