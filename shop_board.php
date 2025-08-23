@@ -2,8 +2,13 @@
 session_start();
 include 'config.php';
 
-if (!isset($_SESSION['shop_id'])) {
-    echo "ยังไม่ได้เข้าสู่ระบบ";
+// เปิด error ตอนพัฒนา
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+if (!isset($_SESSION['shop_id']) || $_SESSION['role'] !== 'shop') {
+    header("Location: login.html");
     exit();
 }
 
@@ -21,164 +26,98 @@ $stmt->close();
 if (!isset($_SESSION['shop_name']) && $shop) {
     $_SESSION['shop_name'] = $shop['shop_name'];
 }
-?>
 
+// ดึงข้อมูลสถิติ
+// บริการทั้งหมด
+$totalServices = 0;
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM services WHERE shop_id = ?");
+$stmt->bind_param("i", $shop_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $totalServices = $row['total'];
+}
+$stmt->close();
+
+// pending
+$pendingBookings = 0;
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'pending'");
+$stmt->bind_param("i", $shop_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $pendingBookings = $row['total'];
+}
+$stmt->close();
+
+// accepted
+$acceptedBookings = 0;
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'accepted'");
+$stmt->bind_param("i", $shop_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $acceptedBookings = $row['total'];
+}
+$stmt->close();
+
+// completed
+$completedBookings = 0;
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'completed'");
+$stmt->bind_param("i", $shop_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $completedBookings = $row['total'];
+}
+$stmt->close();
+
+// รับค่าจาก URL เพื่อกรองสถานะ
+$status_filter = $_GET['status'] ?? 'pending';
+$allowed_status = ['pending', 'accepted', 'rejected', 'completed'];
+if (!in_array($status_filter, $allowed_status)) {
+    $status_filter = 'pending';
+}
+
+// ดึงข้อมูลจองตามสถานะ
+$sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, s.service_name , s.service_type
+        FROM bookings b
+        JOIN users u ON b.user_id = u.user_id
+        JOIN services s ON b.service_id = s.service_id
+        WHERE b.shop_id = ? AND b.status = ?
+        ORDER BY b.booking_date ASC, b.booking_time ASC";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("is", $shop_id, $status_filter);
+$stmt->execute();
+$bookings = $stmt->get_result();
+
+// ดึงรายการบริการทั้งหมด
+$sql_services = "SELECT * FROM services WHERE shop_id = ?";
+$stmt_services = $conn->prepare($sql_services);
+$stmt_services->bind_param("i", $shop_id);
+$stmt_services->execute();
+$services_result = $stmt_services->get_result();
+$stmt_services->close();
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <title>ร้านค้าของฉัน</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="shop_board.css"> <!-- CSS ของ shop_board -->
-    <script src="https://kit.fontawesome.com/yourcode.js" crossorigin="anonymous"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="shop_board.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
 </head>
 <body>
-
-<nav class="sidebar">
-        <div class="logo-section">
-            <div class="logo">
-                <div class="logo-icon">×</div>
-                <div class="logo-text">ระบบครุภัณฑ์</div>
-            </div>
-        </div>
-
-        <div class="user-section">
-            <div class="user-info">
-                <div class="user-icon">👤</div>
-                <span>เมนูหลัก</span>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-title">จัดการข้อมูล</div>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="shop.board.php" class="nav-link active">
-                        <div class="nav-icon">🏷️</div>
-                        <span>ประเภทครุภัณฑ์</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">📦</div>
-                        <span>ครุภัณฑ์</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">📋</div>
-                        <span>แผนก</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">👥</div>
-                        <span>ทีมย่อยบำรุง</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">👤</div>
-                        <span>พนักงาน</span>
-                    </a>
-                </li>
-            </ul>
-
-            <div class="nav-title">รายงานและการดำเนินการ</div>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="report.php" class="nav-link">
-                        <div class="nav-icon">📊</div>
-                        <span>รายงาน</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">📱</div>
-                        <span>ส่งทาง Telegram</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <main class="main-content">
-        <div class="content-card">
-            <h1 class="welcome-text">ยินดีต้อนรับสู่ระบบจัดการครุภัณฑ์</h1>
-            <p class="subtitle">เลือกเมนูจากด้านซ้ายเพื่อเริ่มจัดการข้อมูลครุภัณฑ์ของคุณ</p>
-        </div>
-    </main>
-
-
-<div class="main-content">
     <div class="container">
         <div class="header">
             <h1><i class="fas fa-store"></i> ร้านค้าของฉัน</h1>
             <?php if (isset($_SESSION['shop_name'])): ?>
-                <p style="text-align: center; color: #666; margin-top: 10px;">ยินดีต้อนรับ, ร้าน <?= htmlspecialchars($_SESSION['shop_name']) ?></p>
+                <p class="welcome-text">ยินดีต้อนรับ, ร้าน **<?= htmlspecialchars($_SESSION['shop_name']) ?>**</p>
             <?php endif; ?>
         </div>
-
-        <?php
-        // ดึง shop_id ของร้านนี้จาก session
-        $user_id = $_SESSION['user_id'] ?? 0;
-
-        // ตรวจสอบว่าเป็นร้านหรือไม่
-        if ($_SESSION['role'] !== 'shop') {
-            header("Location: login.html");
-            exit;
-        }
-
-        // ดึง shop_id
-        $stmt = $conn->prepare("SELECT shop_id FROM shops WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $shop = $result->fetch_assoc();
-        $shop_id = $shop['shop_id'] ?? 0;
-
-        // ดึงข้อมูลจำนวนบริการ
-        $totalServices = 0;
-        $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM services WHERE shop_id = ?");
-        $stmt->bind_param("i", $shop_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            $totalServices = $row['total'];
-        }
-
-        // รอการยืนยัน (สถานะ booking = pending)
-        $pendingBookings = 0;
-        $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'pending'");
-        $stmt->bind_param("i", $shop_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            $pendingBookings = $row['total'];
-        }
-
-        // งานที่รับแล้ว (สถานะ booking = accepted)
-        $acceptedBookings = 0;
-        $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'accepted'");
-        $stmt->bind_param("i", $shop_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            $acceptedBookings = $row['total'];
-        }
-
-        // งานที่เสร็จสิ้น (สถานะ booking = completed)
-        $completedBookings = 0;
-        $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'completed'");
-        $stmt->bind_param("i", $shop_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            $completedBookings = $row['total'];
-        }
-        ?>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -202,183 +141,146 @@ if (!isset($_SESSION['shop_name']) && $shop) {
                 <div class="label">งานเสร็จสิ้น</div>
             </div>
         </div>
+
+        <div class="section">
+            <h3>รายการบริการของร้าน</h3>
+            <div class="add-btn-container">
+                <a href="add_service.php" class="add-btn">
+                    <i class="fas fa-plus-circle"></i> เพิ่มบริการใหม่
+                </a>
+            </div>
+            <?php if ($services_result->num_rows > 0): ?>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ชื่อบริการ</th>
+                            <th>รายละเอียด</th>
+                            <th>ราคา</th>
+                            <th>ภาพ</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = $services_result->fetch_assoc()): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['service_name']) ?></td>
+                            <td><?= htmlspecialchars($row['description']) ?></td>
+                            <td><?= number_format($row['price'], 2) ?> บาท</td>
+                            <td>
+                                <?php if (!empty($row['image'])): ?>
+                                    <img src='uploads/<?= htmlspecialchars($row['image']) ?>' alt='ภาพบริการ'>
+                                <?php else: ?>
+                                    ไม่มีภาพ
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <a href='edit_service.php?service_id=<?= htmlspecialchars($row['service_id']) ?>' class='btn btn-edit'>แก้ไข</a>
+                                <a href='delete_service.php?service_id=<?= htmlspecialchars($row['service_id']) ?>' class='btn btn-delete' onclick='return confirm("ยืนยันการลบ?");'>ลบ</a>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <p>ยังไม่มีบริการที่เพิ่มไว้ในร้านของคุณ</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="section">
+            <h3><i class="fas fa-calendar-check"></i> รายการจอง</h3>
+            <div class="status-filter-menu">
+                <a href="?status=pending" class="<?= $status_filter==='pending'?'active':'' ?>">รอดำเนินการ (<?= $pendingBookings ?>)</a>
+                <a href="?status=accepted" class="<?= $status_filter==='accepted'?'active':'' ?>">รับงานแล้ว (<?= $acceptedBookings ?>)</a>
+                <a href="?status=rejected" class="<?= $status_filter==='rejected'?'active':'' ?>">ปฏิเสธ (<?= $status_counts['rejected'] ?? 0 ?>)</a>
+                <a href="?status=completed" class="<?= $status_filter==='completed'?'active':'' ?>">เสร็จสิ้น (<?= $completedBookings ?>)</a>
+            </div>
+            <?php if ($bookings->num_rows > 0): ?>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ชื่อลูกค้า</th>
+                            <th>เบอร์</th>
+                            <th>บริการ</th>
+                            <th>วันเวลาจอง</th>
+                            <th>ที่อยู่</th>
+                            <th>รูปหน้างาน</th>
+                            <th>สถานะ</th>
+                            <th>การจัดการ</th>
+                            <th>โลเคชั่น</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = $bookings->fetch_assoc()): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['customer_name']) ?></td>
+                            <td><?= htmlspecialchars($row['customer_phone']) ?></td>
+                            <td><?= htmlspecialchars($row['service_name']) ?></td>
+                            <td><?= htmlspecialchars($row['booking_date']) . " " . htmlspecialchars($row['booking_time']) ?></td>
+                            <td><?= htmlspecialchars($row['address']) ?></td>
+                            <td>
+                                <?php if (!empty($row['payment_slip'])): ?>
+                                    <?php
+                                        // ป้องกันปัญหา path ซ้ำซ้อน
+                                        $slip_path = (strpos($row['payment_slip'], 'uploads/') === 0) ? $row['payment_slip'] : 'uploads/slips/' . $row['payment_slip'];
+                                    ?>
+                                    <a href='<?= htmlspecialchars($slip_path) ?>' target='_blank'>ดูรูป</a>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars($row['status']) ?></td>
+                            <td>
+                                <?php if ($row['status'] === 'pending'): ?>
+                                    <form method='POST' action='booking_action.php' style='display:inline-block;'>
+                                        <input type='hidden' name='booking_id' value='<?= htmlspecialchars($row['booking_id']) ?>'>
+                                        <button type='submit' class='btn btn-approve' name='action' value='approve'>รับงาน</button>
+                                    </form>
+                                    <form method='POST' action='booking_action.php' style='display:inline-block;'>
+                                        <input type='hidden' name='booking_id' value='<?= htmlspecialchars($row['booking_id']) ?>'>
+                                        <button type='submit' class='btn btn-reject' name='action' value='reject'>ปฏิเสธ</button>
+                                    </form>
+                                <?php elseif ($row['status'] === 'accepted'): ?>
+                                    <form method='POST' action='booking_action.php'>
+                                        <input type='hidden' name='booking_id' value='<?= htmlspecialchars($row['booking_id']) ?>'>
+                                        <button type='submit' class='btn btn-complete' name='action' value='complete'>จบงาน</button>
+                                    </form>
+                                <?php elseif ($row['status'] === 'rejected'): ?>
+                                    <span style="color:#dc3545;">ปฏิเสธงานแล้ว</span>
+                                <?php elseif ($row['status'] === 'completed'): ?>
+                                    <span style="color:#28a745;">งานเสร็จสิ้นแล้ว</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($row['location_lat']) && !empty($row['location_lng'])): ?>
+                                    <a href='https://www.google.com/maps/search/?api=1&query=<?= htmlspecialchars($row['location_lat']) ?>,<?= htmlspecialchars($row['location_lng']) ?>' target='_blank' class='btn btn-map'>ดูแผนที่</a>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>ยังไม่มีการจองจากลูกค้าในสถานะนี้</p>
+                </div>
+            <?php endif; ?>
+        </div>
+        
+        <div class="section text-center">
+            <a href="report.php" class="add-btn" style="background-color: #34495e;">
+                <i class="fas fa-chart-line"></i> ดูรายงานรายได้
+            </a>
+        </div>
     </div>
-    <a href="add_service.php" class="add-service-btn">เพิ่มบริการใหม่</a>
-
-    <div class="section">
-        <h3>บริการของร้าน</h3>
-        <?php
-        $sql = "SELECT * FROM services WHERE shop_id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $shop_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows > 0) {
-            echo "<table>
-                    <tr>
-                        <th>ชื่อบริการ</th>
-                        <th>รายละเอียด</th>
-                        <th>ราคา</th>
-                        <th>ภาพ</th>
-                        <th>จัดการ</th>
-                    </tr>";
-
-            while ($row = $result->fetch_assoc()) {
-                echo "<tr>
-                        <td>" . htmlspecialchars($row['service_name']) . "</td>
-                        <td>" . htmlspecialchars($row['description']) . "</td>
-                        <td>" . htmlspecialchars(number_format($row['price'], 2)) . " บาท</td>
-                        <td>";
-                // ตรวจสอบว่ามีภาพหรือไม่ก่อนแสดง
-                if (!empty($row['image']) && file_exists('uploads/' . $row['image'])) {
-                    echo "<img src='uploads/" . htmlspecialchars($row['image']) . "' alt='ภาพบริการ'>";
-                } else {
-                    echo "ไม่มีภาพ";
-                }
-                echo "</td>
-                        <td>
-                            <a href='edit_service.php?service_id=" . $row['service_id'] . "' class='btn btn-edit'>แก้ไข</a>
-                            <a href='delete_service.php?service_id=" . $row['service_id'] . "' class='btn btn-delete' onclick='return confirm(\"ยืนยันการลบบริการนี้?\");'>ลบ</a>
-                        </td>
-                    </tr>";
-            }
-
-            echo "</table>";
-        } else {
-            echo "<p>ยังไม่มีบริการที่เพิ่มไว้</p>";
-        }
-
-        $stmt->close();
-        ?>
-    </div>
-
-    <?php
-    // สมมุติว่าเชื่อมต่อฐานข้อมูล $conn แล้ว และ $shop_id มีค่า
-
-    // รับค่าจาก URL เพื่อกรองสถานะ
-    $status_filter = isset($_GET['status']) ? $_GET['status'] : 'pending';
-
-    // ตรวจสอบสถานะที่รับมาให้อยู่ในรายการที่อนุญาต (enum ของ status)
-    $allowed_status = ['pending', 'accepted', 'rejected', 'completed'];
-    if (!in_array($status_filter, $allowed_status)) {
-        $status_filter = 'pending'; // กำหนดค่าเริ่มต้นถ้าค่าที่ส่งมาไม่ถูกต้อง
-    }
-
-    // ดึงข้อมูลจองตามสถานะและร้านค้า
-    $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, s.service_name , s.service_type
-        FROM bookings b
-        JOIN users u ON b.user_id = u.user_id
-        JOIN services s ON b.service_id = s.service_id
-        WHERE b.shop_id = ? AND b.status = ?
-        ORDER BY b.booking_date ASC, b.booking_time ASC";
-
-
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("is", $shop_id, $status_filter);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    ?>
-
-    <div class="status-filter-menu">
-        <a href="?status=pending" class="<?= $status_filter === 'pending' ? 'active' : '' ?>">รอดำเนินการ (Pending)</a>
-        <a href="?status=accepted" class="<?= $status_filter === 'accepted' ? 'active' : '' ?>">รับงานแล้ว (Accepted)</a>
-        <a href="?status=rejected" class="<?= $status_filter === 'rejected' ? 'active' : '' ?>">ปฏิเสธ (Rejected)</a>
-        <a href="?status=completed" class="<?= $status_filter === 'completed' ? 'active' : '' ?>">เสร็จสิ้น (Completed)</a>
-    </div>
-
-    <?php
-    // แสดงตารางตามผลลัพธ์ที่ได้
-    if ($result->num_rows > 0) {
-        echo "<table border='1' cellpadding='10'>";
-        echo "<thead>
-                <tr>
-                    <th>ชื่อลูกค้า</th>
-                    <th>เบอร์</th>
-                    <th>บริการ</th>
-                    <th>วันเวลาจอง</th>
-                    <th>ที่อยู่หน้างาน</th>
-                    <th>รูปหน้างาน</th>
-                    <th>สถานะ</th>
-                    <th>การจัดการ</th>
-                    <th>โลเคชั่น</th>
-                </tr>
-            </thead><tbody>";
-
-        while ($row = $result->fetch_assoc()) {
-            // ... แสดงข้อมูลเหมือนเดิม ...
-            echo "<tr>";
-            echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
-            echo "<td>" . htmlspecialchars($row['customer_phone']) . "</td>";
-            echo "<td>" . htmlspecialchars($row['service_name']) . "</td>";
-            echo "<td>" . htmlspecialchars($row['booking_date']) . " " . htmlspecialchars($row['booking_time']) . "</td>";
-            echo "<td>" . htmlspecialchars($row['address']) . "</td>";
-
-            echo "<td>";
-            if (!empty($row['payment_slip'])) {
-                $slip_path = $row['payment_slip'];
-                if (strpos($slip_path, 'uploads/') === false) {
-                    $slip_path = 'uploads/slips/' . $slip_path;
-                }
-                echo "<a href='" . htmlspecialchars($slip_path) . "' target='_blank'>ดูรูป</a>";
-            } else {
-                echo "-";
-            }
-            echo "</td>";
-            
-            echo "<td>" . htmlspecialchars($row['status']) . "</td>";
-
-            // การจัดการ ปรับแสดงตามสถานะเหมือนเดิม
-            echo "<td>";
-            if ($row['status'] === 'pending') {
-                // ปุ่มรับงาน, ปฏิเสธ
-                echo "<form method='POST' action='booking_action.php' style='display:inline-block; margin-right:5px;' onsubmit='return confirm(\"ยืนยันการรับงานนี้?\");'>";
-                echo "<input type='hidden' name='booking_id' value='" . htmlspecialchars($row['booking_id']) . "'>";
-                echo "<button type='submit' class='btn btn-approve' name='action' value='approve'>รับงาน</button>";
-                echo "</form>";
-
-                echo "<form method='POST' action='booking_action.php' style='display:inline-block;' onsubmit='return confirm(\"ยืนยันการปฏิเสธงานนี้?\");'>";
-                echo "<input type='hidden' name='booking_id' value='" . htmlspecialchars($row['booking_id']) . "'>";
-                echo "<button type='submit' class='btn btn-reject' name='action' value='reject'>ปฏิเสธ</button>";
-                echo "</form>";
-            } elseif ($row['status'] === 'accepted') {
-                // ปุ่มจบงาน
-                echo "<form method='POST' action='booking_action.php' onsubmit='return confirm(\"ยืนยันการจบงานนี้?\");'>";
-                echo "<input type='hidden' name='booking_id' value='" . htmlspecialchars($row['booking_id']) . "'>";
-                echo "<button type='submit' class='btn btn-complete' name='action' value='complete'>จบงาน</button>";
-                echo "</form>";
-            } elseif ($row['status'] === 'rejected') {
-                echo "ปฏิเสธงานแล้ว";
-            } elseif ($row['status'] === 'completed') {
-                echo "งานเสร็จสิ้นแล้ว";
-            }
-            echo "</td>";
-
-            echo "<td>";
-            if (!empty($row['location_lat']) && !empty($row['location_lng']) && is_numeric($row['location_lat']) && is_numeric($row['location_lng'])) {
-                $maps_link = "https://www.google.com/maps/search/?api=1&query=" . $row['location_lat'] . "," . $row['location_lng'];
-                echo "<a href='" . htmlspecialchars($maps_link) . "' target='_blank' class='btn btn-map'>ดูแผนที่</a>";
-            } else {
-                echo "-";
-            }
-            echo "</td>";
-
-            echo "</tr>";
-        }
-
-        echo "</tbody></table>";
-    } else {
-        echo "<p>ยังไม่มีการจองจากลูกค้าในสถานะนี้</p>";
-    }
-
-    $stmt->close();
-    $conn->close();
-
-    ?>
-
-    
-</div>
-<a href="shop_income.php" class="add-service-btn">รายได้</a>
 </body>
 </html>
-

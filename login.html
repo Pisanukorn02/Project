@@ -3,85 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <title>เข้าสู่ระบบ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: sans-serif;
-            background-color: #f8f9fa;
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(135deg, #f6f9fc 0%, #e9f1f9 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            padding: 20px;
         }
 
         .login-box {
             background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.15);
-            width: 350px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #5a67d8, #4c51bf);
+            border-radius: 20px 20px 0 0;
         }
 
         .login-box h2 {
+            color: #2d3748;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .login-box input[type="text"],
-        .login-box input[type="password"] {
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 67%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .input-group input {
             width: 100%;
-            padding: 12px;
-            margin: 8px 0 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: 'Kanit', sans-serif;
+            color: #2d3748;
         }
 
-        .login-box input[type="submit"] {
-            background-color: #007bff;
-            color: white;
+        .input-group input:focus {
+            border-color: #5a67d8;
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+            outline: none;
+        }
+
+        .input-group input:focus + i {
+            color: #5a67d8;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #5a67d8 0%, #4c51bf 100%);
             border: none;
-            padding: 12px;
-            width: 100%;
-            border-radius: 5px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Kanit', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .login-box input[type="submit"]:hover {
-            background-color: #0056b3;
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(90, 103, 216, 0.2);
         }
 
-        .login-box p {
+        .register-links {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
         }
 
-        .login-box a {
+        .register-links p {
+            color: #718096;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .register-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .register-button {
+            padding: 10px 20px;
+            border-radius: 8px;
             text-decoration: none;
-            color: #007bff;
+            color: #5a67d8;
+            background: #ebf4ff;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .login-box a:hover {
-            text-decoration: underline;
+        .register-button:hover {
+            background: #5a67d8;
+            color: white;
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
     <form class="login-box" action="login.php" method="POST">
-        <h2>เข้าสู่ระบบ</h2>
+        <h2><i class="fas fa-user-circle"></i> เข้าสู่ระบบ</h2>
 
-        <label for="username">ชื่อผู้ใช้ (หรืออีเมล)</label>
-        <input type="text" name="username" id="username" required>
+        <div class="input-group">
+            <label for="username">ชื่อผู้ใช้ หรือ อีเมล</label>
+            <input type="text" name="username" id="username" required>
+            <i class="fas fa-user"></i>
+        </div>
 
-        <label for="password">รหัสผ่าน</label>
-        <input type="password" name="password" id="password" required>
-<!--pattoern เช่นต้องมีตัวใหญ่ ต้องยาว 8หลัก เป็นเต้น -->
-        <input type="submit" value="เข้าสู่ระบบ">
-<!-- ทำเช็คบล็อก A gree to Terms And Conditions -->
-        <p>
-            สมัครสมาชิก:
-            <br>
-            <a href="register_user.html">ลูกค้า</a> |
-            <a href="register_shop.html">ร้านค้า</a>
-        </p>
+        <div class="input-group">
+            <label for="password">รหัสผ่าน</label>
+            <input type="password" name="password" id="password" required>
+            <i class="fas fa-lock"></i>
+        </div>
+
+        <button type="submit" class="login-button">
+            <i class="fas fa-sign-in-alt"></i>
+            เข้าสู่ระบบ
+        </button>
+
+        <div class="register-links">
+            <p>ยังไม่มีบัญชี? สมัครสมาชิกได้ที่นี่</p>
+            <div class="register-buttons">
+                <a href="register_user.html" class="register-button">
+                    <i class="fas fa-user"></i>
+                    สำหรับลูกค้า
+                </a>
+                <a href="register_shop.html" class="register-button">
+                    <i class="fas fa-store"></i>
+                    สำหรับร้านค้า
+                </a>
+            </div>
+        </div>
     </form>
 </body>
 </html>
