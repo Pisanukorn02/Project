@@ -139,6 +139,37 @@ $result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b
         .slip-link:hover {
             background: #f0f4f8;
         }
+
+        .complete-img {
+            max-width: 50px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+
+        .complete-img:hover {
+            transform: scale(1.2);
+        }
+
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -153,61 +184,102 @@ $result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b
     
     <div class="booking-table">
         <table>
-    <tr>
-        <th>ร้านค้า</th>
-        <th>บริการ</th>
-        <th>วันที่/เวลา</th>
-        <th>สถานที่</th>
-        <th>สถานะ</th>
-        <th>สลิป</th>
-    </tr>
-    <?php while ($row = $result->fetch_assoc()): ?>
-    <tr>
-        <td><?= htmlspecialchars($row['shop_name']) ?></td>
-        <td><?= htmlspecialchars($row['service_name']) ?></td>
-        <td><?= $row['booking_date'] ?> <?= $row['booking_time'] ?></td>
-        <td><?= htmlspecialchars($row['address']) ?></td>
-        <td>
-    <?php
-    $status_text = '';
-    switch ($row['status']) {
-        case 'pending':
-            $status_text = 'รอการตอบรับจากร้านค้า';
-            break;
-        case 'accepted':
-            $status_text = 'ร้านค้ารับงานแล้ว';
-            break;
-        case 'completed':
-            $status_text = 'งานเสร็จสิ้น';
-            break;
-        case 'rejected':
-            $status_text = 'ถูกร้านค้าปฏิเสธ';
-            break;
-        default:
-            $status_text = htmlspecialchars($row['status']); // หรือ "ไม่ทราบสถานะ"
-            break;
-    }
-    echo $status_text;
-    ?>
-</td>
+            <tr>
+                <th>ร้านค้า</th>
+                <th>บริการ</th>
+                <th>วันที่/เวลา</th>
+                <th>สถานที่</th>
+                <th>สถานะ</th>
+                <th>หน้างาน</th>
+                <th>ใบเสร็จ</th>
+                <th>รูปจบงาน</th>
+            </tr>
+            <?php while ($row = $result->fetch_assoc()): ?>
+            <tr>
+                <td><?= htmlspecialchars($row['shop_name']) ?></td>
+                <td><?= htmlspecialchars($row['service_name']) ?></td>
+                <td><?= $row['booking_date'] ?> <?= $row['booking_time'] ?></td>
+                <td><?= htmlspecialchars($row['address']) ?></td>
+                <td>
+                    <?php
+                    $status_text = '';
+                    switch ($row['status']) {
+                        case 'pending':
+                            $status_text = 'รอการตอบรับ';
+                            break;
+                        case 'accepted':
+                            $status_text = 'ร้านค้ารับงานแล้ว';
+                            break;
+                        case 'completed':
+                            $status_text = 'งานเสร็จสิ้น';
+                            break;
+                        case 'rejected':
+                            $status_text = 'ถูกร้านค้าปฏิเสธ';
+                            break;
+                        default:
+                            $status_text = htmlspecialchars($row['status']);
+                            break;
+                    }
+                    echo $status_text;
+                    ?>
+                </td>
 
-        <td>
-    <?php if ($row['payment_slip']): ?>
-        <?php 
-            $slip_path = $row['payment_slip'];
-            // ถ้าไม่มีคำว่า "uploads/" แปะ prefix ให้
-            if (strpos($slip_path, 'uploads/') === false) {
-                $slip_path = 'uploads/slips/' . $slip_path;
-            }
-        ?>
-        <a href="<?= htmlspecialchars($slip_path) ?>" target="_blank">ดูสลิป</a>
-    <?php else: ?>
-        -
-    <?php endif; ?>
-</td>
+                <td>
+                    <?php if ($row['payment_slip']): 
+                        $slip_path = $row['payment_slip'];
+                        if (strpos($slip_path, 'uploads/') === false) {
+                            $slip_path = 'uploads/slips/' . $slip_path;
+                        }
+                    ?>
+                        <a href="<?= htmlspecialchars($slip_path) ?>" target="_blank">ดูหน้างาน</a>
+                    <?php else: ?>
+                        -
+                    <?php endif; ?>
+                </td>
 
-    </tr>
-    <?php endwhile; ?>
-</table>
+                <td>
+                    <?php if ($row['status'] === 'completed'): ?>
+                        <a href="receipt.php?booking_id=<?= $row['booking_id'] ?>" target="_blank" class="slip-link">
+                            <i class="fas fa-print"></i> พิมพ์ใบเสร็จ
+                        </a>
+                    <?php else: ?>
+                        -
+                    <?php endif; ?>
+                </td>
+
+                <td>
+                    <?php
+                    if (!empty($row['complete_image'])) {
+                        $img_path = $row['complete_image'];
+                        if (strpos($img_path, 'uploads/') === false) {
+                            $img_path = 'uploads/completions/' . $img_path;
+                        }
+                        echo '<img src="' . htmlspecialchars($img_path) . '" class="complete-img" onclick="openImage(this.src)">';
+                    } else {
+                        echo "-";
+                    }
+                    ?>
+                </td>
+
+            </tr>
+            <?php endwhile; ?>
+        </table>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="">
+</div>
+
+<script>
+function openImage(src){
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').style.display='flex';
+}
+function closeLightbox(){
+    document.getElementById('lightbox').style.display='none';
+}
+</script>
 </body>
 </html>

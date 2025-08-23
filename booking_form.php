@@ -66,10 +66,19 @@ if (count($shop_ids) > 1) {
 }
 $shop = $services[0]; 
 
-$total_price = 0;
-foreach ($services as $s) {
-    $total_price += $s['price'];
+// แม็ปจำนวนจากตะกร้า
+$cartQuantities = [];
+foreach ($cart as $c) {
+    $cartQuantities[$c['service_id']] = $c['quantity'] ?? 1;
 }
+
+// คำนวณราคาทั้งหมดตามจำนวน
+$total_price = 0;
+foreach ($services as &$s) {
+    $s['quantity'] = $cartQuantities[$s['service_id']] ?? 1;
+    $total_price += $s['price'] * $s['quantity'];
+}
+unset($s);
 
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT name, phone, address, latitude, longitude FROM users WHERE user_id = ?");
@@ -110,16 +119,20 @@ ul.service-list li { margin-bottom: 5px; }
 <h3>รายการบริการที่เลือก</h3>
 <ul class="service-list">
 <?php $i = 1; foreach ($services as $s): ?>
-    <li><?= $i ?>. <?= htmlspecialchars($s['service_name']) ?> - <?= number_format($s['price'], 2) ?> บาท</li>
+    <li>
+        <?= $i ?>. <?= htmlspecialchars($s['service_name']) ?> - 
+        <?= number_format($s['price'],2) ?> x <?= $s['quantity'] ?> = <?= number_format($s['price']*$s['quantity'],2) ?> บาท
+    </li>
 <?php $i++; endforeach; ?>
 </ul>
-<p><strong>รวมราคา: <?= number_format($total_price, 2) ?> บาท</strong></p>
+<p><strong>รวมราคา: <?= number_format($total_price,2) ?> บาท</strong></p>
 <p><strong>ร้าน: <?= htmlspecialchars($shop['shop_name']) ?></strong></p>
 
 <form action="booking_process.php" method="POST" enctype="multipart/form-data" id="bookingForm">
 <input type="hidden" name="shop_id" value="<?= $shop['shop_id'] ?>">
 <?php foreach ($services as $s): ?>
 <input type="hidden" name="service_id[]" value="<?= $s['service_id'] ?>">
+<input type="hidden" name="quantity[]" value="<?= $s['quantity'] ?>">
 <?php endforeach; ?>
 
 <label>ชื่อลูกค้า</label>
@@ -136,20 +149,15 @@ ul.service-list li { margin-bottom: 5px; }
 
 <script>
 const bookingTimeSelect = document.getElementById('booking_time');
-
-// กำหนดเวลาเริ่ม 08:00 ถึง 17:00
 for (let h = 8; h <= 17; h++) {
-    for (let m = 0; m < 60; m += 5) { // เพิ่มทีละ 5 นาที
+    for (let m = 0; m < 60; m += 5) {
         const option = document.createElement('option');
-        const hourStr = h.toString().padStart(2,'0');
-        const minStr = m.toString().padStart(2,'0');
-        option.value = `${hourStr}:${minStr}`;
-        option.textContent = `${hourStr}:${minStr}`;
+        option.value = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+        option.textContent = option.value;
         bookingTimeSelect.appendChild(option);
     }
 }
 </script>
-
 
 <label>ที่อยู่</label>
 <textarea name="address" rows="3" readonly><?= htmlspecialchars($user['address']) ?></textarea>
@@ -202,38 +210,6 @@ function updateDistance(latlng) {
     }
 }
 
-// ตรวจสอบตำแหน่งเริ่มต้น
-function checkInitialPosition() {
-    const initialDistance = getDistanceFromLatLonInKm(shopLat, shopLng, userLat, userLng);
-    if(initialDistance > 30){
-        alert("ตำแหน่งเริ่มต้นของคุณอยู่นอกพื้นที่ให้บริการของร้าน (เกิน 30 กม.)");
-        userMarker.setLatLng([shopLat, shopLng]);
-        document.getElementById('lat').value = shopLat;
-        document.getElementById('lng').value = shopLng;
-        document.getElementById('distance_info').textContent = "คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน";
-    } else {
-        updateDistance(userMarker.getLatLng());
-    }
-}
-
-// ตั้งค่า hidden input
-document.getElementById('lat').value = userLat;
-document.getElementById('lng').value = userLng;
-
-checkInitialPosition();
-
-// ลากหมุด
-userMarker.on('dragend', function(e) {
-    updateDistance(e.target.getLatLng());
-});
-
-// คลิกเปลี่ยนตำแหน่ง
-map.on('click', function(e) {
-    userMarker.setLatLng(e.latlng);
-    updateDistance(e.latlng);
-    userMarker.openPopup();
-});
-
 function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2){
     const R=6371;
     const dLat=deg2rad(lat2-lat1);
@@ -243,48 +219,32 @@ function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2){
     return R*c;
 }
 function deg2rad(deg){ return deg*(Math.PI/180); }
-</script>
 
-<script>
-const hourSelect = document.getElementById('booking_hour');
-const minuteSelect = document.getElementById('booking_minute');
+document.getElementById('lat').value = userLat;
+document.getElementById('lng').value = userLng;
 
-// เติมชั่วโมงเฉพาะ 08-17
-for(let h=8; h<=17; h++){
-    const option = document.createElement('option');
-    option.value = h.toString().padStart(2,'0');
-    option.textContent = h.toString().padStart(2,'0');
-    hourSelect.appendChild(option);
-}
+// ลากหมุด
+userMarker.on('dragend', function(e) { updateDistance(e.target.getLatLng()); });
 
-// เติมนาที 00, 05, 10, ..., 55
-for(let m=0; m<60; m+=5){
-    const option = document.createElement('option');
-    option.value = m.toString().padStart(2,'0');
-    option.textContent = m.toString().padStart(2,'0');
-    minuteSelect.appendChild(option);
-}
-
-document.getElementById('bookingForm').addEventListener('submit', function(e){
-    const hour = parseInt(hourSelect.value);
-    const minute = parseInt(minuteSelect.value);
-    
-    // ตรวจสอบช่วงเวลา 08-17
-    if(hour < 8 || hour > 17){
-        alert("กรุณาเลือกเวลาระหว่าง 08:00 ถึง 17:00");
-        e.preventDefault();
-        return;
-    }
-
-    const timeValue = `${hourSelect.value}:${minuteSelect.value}`;
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'booking_time';
-    hiddenInput.value = timeValue;
-    e.target.appendChild(hiddenInput);
+// คลิกเปลี่ยนตำแหน่ง
+map.on('click', function(e) {
+    userMarker.setLatLng(e.latlng);
+    updateDistance(e.latlng);
+    userMarker.openPopup();
 });
-</script>
 
+// ตรวจสอบตำแหน่งเริ่มต้น
+const initialDistance = getDistanceFromLatLonInKm(shopLat, shopLng, userLat, userLng);
+if(initialDistance > 30){
+    alert("ตำแหน่งเริ่มต้นของคุณอยู่นอกพื้นที่ให้บริการของร้าน (เกิน 30 กม.)");
+    userMarker.setLatLng([shopLat, shopLng]);
+    document.getElementById('lat').value = shopLat;
+    document.getElementById('lng').value = shopLng;
+    document.getElementById('distance_info').textContent = "คลิกบนแผนที่เพื่อเลือกตำแหน่งและดูระยะทางจากร้าน";
+} else {
+    updateDistance(userMarker.getLatLng());
+}
+</script>
 
 </body>
 </html>

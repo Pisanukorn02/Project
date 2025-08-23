@@ -36,80 +36,7 @@ if (!isset($_SESSION['shop_name']) && $shop) {
 </head>
 <body>
 
-<nav class="sidebar">
-        <div class="logo-section">
-            <div class="logo">
-                <div class="logo-icon">×</div>
-                <div class="logo-text">ระบบครุภัณฑ์</div>
-            </div>
-        </div>
 
-        <div class="user-section">
-            <div class="user-info">
-                <div class="user-icon">👤</div>
-                <span>เมนูหลัก</span>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-title">จัดการข้อมูล</div>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="shop.board.php" class="nav-link active">
-                        <div class="nav-icon">🏷️</div>
-                        <span>ประเภทครุภัณฑ์</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">📦</div>
-                        <span>ครุภัณฑ์</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">📋</div>
-                        <span>แผนก</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">👥</div>
-                        <span>ทีมย่อยบำรุง</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">👤</div>
-                        <span>พนักงาน</span>
-                    </a>
-                </li>
-            </ul>
-
-            <div class="nav-title">รายงานและการดำเนินการ</div>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="report.php" class="nav-link">
-                        <div class="nav-icon">📊</div>
-                        <span>รายงาน</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div class="nav-icon">📱</div>
-                        <span>ส่งทาง Telegram</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <main class="main-content">
-        <div class="content-card">
-            <h1 class="welcome-text">ยินดีต้อนรับสู่ระบบจัดการครุภัณฑ์</h1>
-            <p class="subtitle">เลือกเมนูจากด้านซ้ายเพื่อเริ่มจัดการข้อมูลครุภัณฑ์ของคุณ</p>
-        </div>
-    </main>
 
 
 <div class="main-content">
@@ -342,11 +269,12 @@ if (!isset($_SESSION['shop_name']) && $shop) {
                 echo "<button type='submit' class='btn btn-reject' name='action' value='reject'>ปฏิเสธ</button>";
                 echo "</form>";
             } elseif ($row['status'] === 'accepted') {
-                // ปุ่มจบงาน
-                echo "<form method='POST' action='booking_action.php' onsubmit='return confirm(\"ยืนยันการจบงานนี้?\");'>";
-                echo "<input type='hidden' name='booking_id' value='" . htmlspecialchars($row['booking_id']) . "'>";
-                echo "<button type='submit' class='btn btn-complete' name='action' value='complete'>จบงาน</button>";
-                echo "</form>";
+    // อัพโหลดหลักฐานงานเสร็จก่อนจบงาน
+    echo "<form method='POST' action='booking_action.php' enctype='multipart/form-data' onsubmit='return confirm(\"อัพโหลดรูปหลักฐานและยืนยันการจบงาน?\");' style='display:inline-block;'>";
+    echo "<input type='hidden' name='booking_id' value='" . htmlspecialchars($row['booking_id']) . "'>";
+    echo "<input type='file' name='completion_proof' accept='image/*' required style='margin-bottom:5px; display:block;'>";
+    echo "<button type='submit' class='btn btn-complete' name='action' value='complete'>จบงาน</button>";
+    echo "</form>";
             } elseif ($row['status'] === 'rejected') {
                 echo "ปฏิเสธงานแล้ว";
             } elseif ($row['status'] === 'completed') {
@@ -378,7 +306,7 @@ if (!isset($_SESSION['shop_name']) && $shop) {
 
     
 </div>
-<a href="shop_income.php" class="add-service-btn">รายได้</a>
+<a href="report.php" class="add-service-btn">รายได้</a>
 </body>
 </html>
 

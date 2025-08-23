@@ -16,8 +16,27 @@ if (isset($_GET['service_id'])) {
     $service = $result->fetch_assoc();
 
     if ($service) {
-        // เพิ่มลง session cart
-        $_SESSION['cart'][] = $service;
+        // เพิ่ม quantity เริ่มต้น
+        $service['quantity'] = 1;
+
+        // ตรวจสอบว่าบริการนี้มีอยู่ในตะกร้าแล้วหรือยัง
+        $found = false;
+        if (isset($_SESSION['cart'])) {
+            foreach ($_SESSION['cart'] as &$item) {
+                if ($item['service_id'] == $service_id) {
+                    $item['quantity'] += 1; // เพิ่มจำนวน
+                    $found = true;
+                    break;
+                }
+            }
+            unset($item); // ป้องกันการอ้างอิง
+        }
+
+        // ถ้าไม่มีในตะกร้า ให้เพิ่มใหม่
+        if (!$found) {
+            $_SESSION['cart'][] = $service;
+        }
+
         header("Location: cart.php");
         exit();
     } else {

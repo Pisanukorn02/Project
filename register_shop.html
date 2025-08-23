@@ -106,7 +106,10 @@
         <input type="text" name="name" placeholder="ชื่อเจ้าของร้าน" required />
         <input type="email" name="email" placeholder="อีเมล" required />
         <input type="password" name="password" placeholder="รหัสผ่าน" required />
-        <input type="text" name="phone" placeholder="เบอร์โทรศัพท์" required />
+        <input type="tel" name="phone" placeholder="เบอร์โทรศัพท์"
+       pattern="[0-9]{10}" maxlength="10" required
+       title="กรุณากรอกเบอร์โทรศัพท์ 10 หลัก">
+
         
         <div class="form-group">
             <label for="shop_image">รูปร้านค้า (เช่น รูปหน้าร้าน, โลโก้):</label>

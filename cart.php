@@ -87,6 +87,9 @@ $cart = $_SESSION['cart'] ?? [];
             font-weight: 500;
             font-size: 16px;
         }
+        .item-quantity {
+            margin-top: 5px;
+        }
         .remove-button {
             background-color: #ff5252;
             color: white;
@@ -95,9 +98,22 @@ $cart = $_SESSION['cart'] ?? [];
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            margin-left: 10px;
         }
         .remove-button:hover {
             background-color: #ff1744;
+        }
+        .update-button {
+            padding: 5px 10px;
+            border: none;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .update-button:hover {
+            background-color: #1976d2;
         }
         .checkout-button {
             display: block;
@@ -122,6 +138,19 @@ $cart = $_SESSION['cart'] ?? [];
             padding: 30px;
             font-size: 18px;
         }
+        .total-price {
+            text-align: right;
+            font-size: 18px;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+        input.quantity-input {
+            width: 60px;
+            padding: 4px;
+            text-align: center;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -133,32 +162,50 @@ $cart = $_SESSION['cart'] ?? [];
         <h2>ตะกร้าบริการของคุณ</h2>
 
         <?php if (count($cart) > 0): ?>
-    <ul class="cart-list">
-    <?php foreach ($cart as $index => $item): ?>
-        <li class="cart-item">
-            <img src="uploads/<?= htmlspecialchars($item['image']) ?>" alt="ภาพบริการ">
-            <div class="item-details">
-                <div class="item-name"><?= htmlspecialchars($item['service_name']) ?></div>
-                <div class="item-price"><?= number_format($item['price']) ?> บาท</div>
-            </div>
-            <form action="cart_action.php" method="POST">
-                <input type="hidden" name="action" value="remove">
-                <input type="hidden" name="index" value="<?= $index ?>">
-                <button type="submit" class="remove-button" onclick="return confirm('คุณต้องการลบบริการนี้ออกจากตะกร้าหรือไม่?')">
-                    ลบ
-                </button>
-            </form>
-        </li>
-    <?php endforeach; ?>
-    </ul>
-    <form action="booking_form.php" method="GET">
-        <input type="hidden" name="from_cart" value="1">
-        <button type="submit" class="checkout-button">จองทั้งหมด</button>
-    </form>
+            <ul class="cart-list">
+                <?php foreach ($cart as $index => $item): ?>
+                    <li class="cart-item">
+                        <img src="uploads/<?= htmlspecialchars($item['image']) ?>" alt="ภาพบริการ">
+                        <div class="item-details">
+                            <div class="item-name"><?= htmlspecialchars($item['service_name']) ?></div>
+                            <div class="item-price"><?= number_format($item['price'] * ($item['quantity'] ?? 1)) ?> บาท</div>
+                            <div class="item-quantity">
+                                จำนวน:
+                                <form action="cart_action.php" method="POST" style="display:inline-block;">
+                                    <input type="hidden" name="action" value="update">
+                                    <input type="hidden" name="index" value="<?= $index ?>">
+                                    <input type="number" name="quantity" min="1" value="<?= $item['quantity'] ?? 1 ?>" class="quantity-input">
+                                    <button type="submit" class="update-button">อัปเดต</button>
+                                </form>
+                            </div>
+                        </div>
+                        <form action="cart_action.php" method="POST">
+                            <input type="hidden" name="action" value="remove">
+                            <input type="hidden" name="index" value="<?= $index ?>">
+                            <button type="submit" class="remove-button" onclick="return confirm('คุณต้องการลบบริการนี้ออกจากตะกร้าหรือไม่?')">
+                                ลบ
+                            </button>
+                        </form>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
 
-<?php else: ?>
-    <div class="empty-cart">ยังไม่มีบริการในตะกร้า</div>
-<?php endif; ?>
+            <?php
+                $total = 0;
+                foreach ($cart as $item) {
+                    $total += $item['price'] * ($item['quantity'] ?? 1);
+                }
+            ?>
+            <div class="total-price">รวมทั้งหมด: <?= number_format($total) ?> บาท</div>
+
+            <form action="booking_form.php" method="GET">
+                <input type="hidden" name="from_cart" value="1">
+                <button type="submit" class="checkout-button">จองทั้งหมด</button>
+            </form>
+
+        <?php else: ?>
+            <div class="empty-cart">ยังไม่มีบริการในตะกร้า</div>
+        <?php endif; ?>
     </div>
 </body>
 </html>

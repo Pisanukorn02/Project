@@ -382,9 +382,15 @@ $stmt->close();
                         <input type="text" name="name" value="<?= htmlspecialchars($name) ?>" required>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-phone"></i> เบอร์โทรศัพท์</label>
-                        <input type="text" name="phone" value="<?= htmlspecialchars($phone) ?>" required>
-                    </div>
+    <label><i class="fas fa-phone"></i> เบอร์โทรศัพท์</label>
+    <input type="text" name="phone" 
+           value="<?= htmlspecialchars($phone) ?>" 
+           maxlength="10" 
+           pattern="\d{10}" 
+           title="กรุณากรอกตัวเลข 10 หลัก" 
+           required>
+</div>
+
                 </div>
                 
                 <div class="form-group">

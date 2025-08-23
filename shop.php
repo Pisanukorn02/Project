@@ -20,11 +20,24 @@ if (!$shop) {
 }
 
 // ดึงบริการของร้านนี้
-$service_sql = "SELECT * FROM services WHERE shop_id = ? AND is_approved = 1";
-$service_stmt = $conn->prepare($service_sql);
-$service_stmt->bind_param("i", $shop_id);
+$shop_id = intval($_GET['shop_id']);
+$service_id = isset($_GET['service_id']) ? intval($_GET['service_id']) : 0;
+
+if ($service_id > 0) {
+    // ถ้ามีการส่ง service_id มา → ดึงเฉพาะบริการนั้น
+    $service_sql = "SELECT * FROM services WHERE shop_id = ? AND service_id = ? AND is_approved = 1";
+    $service_stmt = $conn->prepare($service_sql);
+    $service_stmt->bind_param("ii", $shop_id, $service_id);
+} else {
+    // ถ้าไม่มี service_id → ดึงบริการทั้งหมดของร้าน
+    $service_sql = "SELECT * FROM services WHERE shop_id = ? AND is_approved = 1";
+    $service_stmt = $conn->prepare($service_sql);
+    $service_stmt->bind_param("i", $shop_id);
+}
+
 $service_stmt->execute();
 $services = $service_stmt->get_result();
+
 
 // ดึงรีวิวร้าน
 $stmt = $conn->prepare("SELECT r.rating, r.comment, r.created_at, u.name FROM reviews r JOIN users u ON r.user_id = u.user_id WHERE r.shop_id = ?");
@@ -617,4 +630,4 @@ if (isset($_SESSION['user_id'])) {
         <!-- ปุ่มกลับ -->
         <div style="text-align: center;">
             <a href="index.php" class="btn-back">
-                <i class="fas fa-arrow-left"></i> กลับไปหน
+                <i class="fas fa-arrow-left"></i> กลับไปหน้าหลัก
