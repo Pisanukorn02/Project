@@ -83,6 +83,41 @@ $stmt->close();
         .header {
             text-align: center;
             margin-bottom: 40px;
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .back-button i {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .back-button:hover i {
+            transform: translateX(-5px);
         }
 
         .header h1 {
@@ -324,6 +359,10 @@ $stmt->close();
 <body>
 
 <div class="header">
+    <a href="index.php" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        กลับหน้าหลัก
+    </a>
     <h1><i class="fas fa-user-circle"></i> บัญชีของฉัน</h1>
     <p class="subtitle">จัดการข้อมูลส่วนตัวและดูประวัติการใช้บริการ</p>
 </div>
@@ -510,19 +549,39 @@ marker.on('dragend', function(e){
     updateInputs(e.target.getLatLng());
 });
 
+// ฟังก์ชันสำหรับดึงที่อยู่จากพิกัด
+function getAddress(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const addressField = document.querySelector('textarea[name="address"]');
+            if (data && data.display_name) {
+                addressField.value = data.display_name;
+            } else {
+                addressField.value = "ไม่พบข้อมูลที่อยู่";
+            }
+        })
+        .catch(error => {
+            console.error('เกิดข้อผิดพลาดในการดึงข้อมูลที่อยู่:', error);
+            document.querySelector('textarea[name="address"]').value = "ไม่สามารถดึงข้อมูลที่อยู่ได้";
+        });
+}
+
 // ถ้าคลิกบน map ให้ marker ย้ายไปตำแหน่งนั้น
 map.on('click', function(e){
     marker.setLatLng(e.latlng);
     updateInputs(e.latlng);
+    getAddress(e.latlng.lat, e.latlng.lng);
 });
 
-
-    // Drag marker
-    marker.on('dragend', function(e) {
-        var pos = e.target.getLatLng();
-        document.getElementById('latitude').value = pos.lat;
-        document.getElementById('longitude').value = pos.lng;
-    });
+// Drag marker
+marker.on('dragend', function(e) {
+    var pos = e.target.getLatLng();
+    document.getElementById('latitude').value = pos.lat;
+    document.getElementById('longitude').value = pos.lng;
+    getAddress(pos.lat, pos.lng);
+});
 
     // Add smooth animations on page load
     document.addEventListener('DOMContentLoaded', function() {
