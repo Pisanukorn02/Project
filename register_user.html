@@ -6,48 +6,87 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
-            font-family: sans-serif;
-            background-color: #e3f2fd;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: auto;
+            min-height: 100vh;
+            margin: 0;
             padding: 30px;
         }
 
         .register-box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            width: 400px;
-        }
-
-        input, textarea {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             width: 100%;
-            padding: 12px;
-            margin: 8px 0 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        input[type="submit"] {
-            background-color: #28a745;
-            color: white;
-            cursor: pointer;
-        }
-
-        input[type="submit"]:hover {
-            background-color: #218838;
-        }
-
-        #map {
-            height: 300px;
-            margin-top: 16px;
+            max-width: 450px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         h2 {
-            text-align: center;
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin: 8px 0 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background-color: #f9f9f9;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4a6cf7;
+            box-shadow: 0 0 8px rgba(74, 108, 247, 0.2);
+        }
+
+        input[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+        }
+
+        #map {
+            height: 350px;
+            width: 100%;
+            margin-top: 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -65,6 +104,7 @@
 
         <input type="hidden" name="latitude" id="lat">
         <input type="hidden" name="longitude" id="lng">
+        <br>
 
         <input type="submit" value="สมัครสมาชิก">
     </form>
