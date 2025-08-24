@@ -460,7 +460,7 @@ $result = $stmt->get_result();
             <a href="shop_board.php"><i class="fas fa-store"></i> ร้านของฉัน</a>
         <?php endif; ?>
         <?php if (!isset($_SESSION['user_id'])): ?>
-            <a href="register_user.html"><i class="fas fa-user-plus"></i> สมัครผู้ใช้</a>
+            <a href="register_user.html"><i class="fas fa-user-plus"></i> สมัครบัญชีผู้ใช้</a>
             <a href="register_shop.html"><i class="fas fa-store-alt"></i> สมัครร้านค้า</a>
             <a href="login.html"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
         <?php else: ?>
@@ -519,7 +519,9 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0):
     while ($row = $result->fetch_assoc()):
 ?>
-    <a href="shop.php?shop_id=<?= $row['shop_id'] ?>" class="service-card">
+   <a href="shop.php?shop_id=<?= $row['shop_id'] ?>&service_id=<?= $row['service_id'] ?>" class="service-card">
+
+
        <?php 
                 $image_path = 'uploads/' . htmlspecialchars($row['image']);
                 if (file_exists($image_path) && !empty($row['image'])): ?>

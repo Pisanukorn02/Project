@@ -96,7 +96,11 @@
         <input type="text" name="name" placeholder="ชื่อผู้ใช้" required>
         <input type="email" name="email" placeholder="อีเมล" required>
         <input type="password" name="password" placeholder="รหัสผ่าน" required>
-        <input type="text" name="phone" placeholder="เบอร์โทรศัพท์" required>
+        <input type="tel" name="phone" placeholder="เบอร์โทรศัพท์" 
+       pattern="\d{10}" maxlength="10" required
+       title="กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"
+       oninput="this.value=this.value.replace(/[^0-9]/g,'');">
+
         <textarea name="address" id="address" placeholder="ที่อยู่ลูกค้า" required></textarea>
 
         <label>ตำแหน่งของคุณ (คลิกบนแผนที่)</label>
