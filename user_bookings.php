@@ -14,6 +14,7 @@ $result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    
     <meta charset="UTF-8">
     <title>รายการจองของฉัน</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -170,16 +171,28 @@ $result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b
             max-height: 90%;
             border-radius: 8px;
         }
+
+        .btn-back {
+            background: linear-gradient(135deg, #90a4ae 0%, #78909c 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            box-shadow: 0 4px 15px rgba(144, 164, 174, 0.4);
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <h2><i class="fas fa-calendar-check"></i> ประวัติการจองของคุณ</h2>
-        <a href="index.php" class="back-button">
-            <i class="fas fa-arrow-left"></i>
-            กลับหน้าหลัก
-        </a>
+        
     </div>
     
     <div class="booking-table">
@@ -281,5 +294,9 @@ function closeLightbox(){
     document.getElementById('lightbox').style.display='none';
 }
 </script>
+ <!-- ปุ่มกลับ -->
+        <div style="text-align: center;">
+            <a href="index.php" class="btn-back">
+                <i class="fas fa-arrow-left"></i> กลับไปหน้าหลัก
 </body>
 </html>
