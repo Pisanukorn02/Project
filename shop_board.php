@@ -278,18 +278,12 @@ $stmt_services->close();
                     <td><?= htmlspecialchars($row['customer_name']) ?></td>
                     <td><?= htmlspecialchars($row['customer_phone']) ?></td>
                     <td>
-                        <?php
-                        if (!empty($row['services'])) {
-                            $services = explode(', ', $row['services']);
-                            foreach ($services as $s) {
-                                $parts = explode(':', $s, 2);
-                                echo htmlspecialchars($parts[1] ?? '') . "<br>";
-                            }
-                        } else {
-                            echo "-";
-                        }
-                        ?>
-                    </td>
+    <button type="button" class="btn" style="background:#007bff; color:#fff; font-weight:bold;" onclick="showServices(<?= $row['booking_id'] ?>)">
+    ดูรายการที่ลูกค้าจอง
+</button>
+
+</td>
+
                     <td><?= htmlspecialchars($row['booking_date']) . " " . htmlspecialchars($row['booking_time']) ?></td>
                     <td><?= htmlspecialchars($row['address']) ?></td>
                     <td>
@@ -356,6 +350,52 @@ $stmt_services->close();
             </a>
         </div>
     </div>
+
+
+    <!-- Modal -->
+<div id="serviceModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>รายละเอียดบริการที่ลูกค้าจอง</h3>
+        <div id="serviceDetails"></div>
+    </div>
+</div>
+
+<style>
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; top: 0; width: 100%; height: 100%; 
+    background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background: #fff; 
+    margin: 10% auto; 
+    padding: 20px; 
+    width: 60%; 
+    border-radius: 8px;
+}
+.close {
+    float: right; 
+    font-size: 24px; 
+    cursor: pointer;
+}
+</style>
+<script>
+function showServices(bookingId) {
+    fetch("get_booking_services.php?booking_id=" + bookingId)
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById("serviceDetails").innerHTML = data;
+            document.getElementById("serviceModal").style.display = "block";
+        });
+}
+
+function closeModal() {
+    document.getElementById("serviceModal").style.display = "none";
+}
+</script>
 
 </body>
 </html>
