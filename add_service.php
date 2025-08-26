@@ -15,12 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description']);
     $price = floatval($_POST['price']);
     $service_type = $_POST['service_type'];
+    $btu_range = trim($_POST['btu_range']);
+    $air_type = !empty($_POST['air_type']) ? trim($_POST['air_type']) : 'ไม่ระบุ';
 
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
         $fileName = basename($_FILES['image']['name']);
         $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $allowedExtensions = ['jpg','jpeg','png','gif'];
 
         if (!in_array($fileExtension, $allowedExtensions)) {
             $message = "ไฟล์รูปภาพต้องเป็น jpg, jpeg, png หรือ gif เท่านั้น";
@@ -30,9 +32,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $destPath = $uploadDir . $newFileName;
 
             if (move_uploaded_file($fileTmpPath, $destPath)) {
-                $stmt = $conn->prepare("INSERT INTO services (shop_id, service_name, description, service_type, price, image, created_at, is_approved)
-                                         VALUES (?, ?, ?, ?, ?, ?, NOW(), 1)");
-                $stmt->bind_param("isssds", $shop_id, $service_name, $description, $service_type, $price, $newFileName);
+                $stmt = $conn->prepare("INSERT INTO services 
+    (shop_id, service_name, description, service_type, btu_range, air_type, price, image, created_at, is_approved)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1)");
+
+                $stmt->bind_param("isssssds",
+                    $shop_id,
+                    $service_name,
+                    $description,
+                    $service_type,
+                    $btu_range,
+                    $air_type,
+                    $price,
+                    $newFileName
+                );
+
                 if ($stmt->execute()) {
                     header("Location: shop_board.php");
                     exit();
@@ -49,7 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "กรุณาเลือกไฟล์รูปภาพสำหรับบริการ";
     }
 }
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="th">
@@ -190,6 +206,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <option value="ติดตั้ง/เคลื่อนย้าย">ติดตั้ง/เคลื่อนย้าย</option>
                 </select>
             </div>
+
+            <!-- ✅ เพิ่มฟิลด์ BTU -->
+        <div class="form-group">
+    <label for="btu_range">ขนาด BTU</label>
+    <select id="btu_range" name="btu_range" class="form-control">
+        <option value="">-- เลือกขนาด BTU --</option>
+        <option value="8000-12000">8000-12000 BTU</option>
+        <option value="12000-18000">12000-18000 BTU</option>
+        <option value="18000-24000">18000-24000 BTU</option>
+        <option value="24000-30000">24000-30000 BTU</option>
+    </select>
+</div>
+
+
+        <!-- ✅ เพิ่มฟิลด์ชนิดแอร์ -->
+        <div class="form-group">
+    <label for="air_type">ชนิดแอร์</label>
+    <select id="air_type" name="air_type" required>
+        <option value="">-- เลือกชนิดแอร์ --</option>
+        <option value="แอร์ติดผนัง">แอร์ติดผนัง</option>
+        <option value="แอร์แขวน">แอร์แขวน</option>
+        <option value="แอร์ตั้งพื้น">แอร์ตั้งพื้น</option>
+        <option value="อื่นๆ">อื่นๆ</option>
+    </select>
+</div>
 
             <div class="form-group">
                 <label for="description">รายละเอียด</label>

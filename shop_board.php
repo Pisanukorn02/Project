@@ -158,16 +158,19 @@ $stmt_services->close();
             <?php if (isset($_SESSION['shop_name'])): ?>
                 <p class="welcome-text">ยินดีต้อนรับ, ร้าน **<?= htmlspecialchars($_SESSION['shop_name']) ?>**</p>
             <?php endif; ?>
-
+<a href="edit_shop.php" class="btn-primary" style="margin-top: 20px; display: inline-block;">
+        <i class="fas fa-edit"></i> แก้ไขข้อมูลร้าน
+    </a>
             <div class="shop-image-box">
-        <?php if (!empty($shop['shop_image'])): ?>
-            <img src="uploads/shop_images/<?= htmlspecialchars($shop['shop_image']) ?>" 
-     alt="รูปภาพร้าน"  class="shop-image">
-        <?php else: ?>
-            <img src="assets/default-shop.png" alt="ยังไม่มีรูปภาพร้าน" class="shop-image">
-        <?php endif; ?>
-    </div>
-        </div>
+    <?php 
+    $shop_image_path = 'uploads/' . $shop['shop_image']; // ไม่ต้องมี /shop_images/
+    if (!empty($shop['shop_image']) && file_exists($shop_image_path)): ?>
+        <img src="<?= $shop_image_path ?>" alt="รูปภาพร้าน" class="shop-image">
+    <?php else: ?>
+        <img src="assets/default-shop.png" alt="ยังไม่มีรูปภาพร้าน" class="shop-image">
+    <?php endif; ?>
+</div>
+
     
 
 
@@ -206,36 +209,39 @@ $stmt_services->close();
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr>
-                            <th>ชื่อบริการ</th>
-                            <th>รายละเอียด</th>
-                            <th>ราคา</th>
-                            <th>ภาพ</th>
-                            <th>จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($row = $services_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($row['service_name'] ?? $row['service_name']) ?></td>
+    <tr>
+        <th>ชื่อบริการ</th>
+        <th>รายละเอียด</th>
+        <th>ราคา</th>
+        <th>BTU</th>
+        <th>ชนิดแอร์</th>
+        <th>ภาพ</th>
+        <th>จัดการ</th>
+    </tr>
+</thead>
+<tbody>
+    <?php while ($row = $services_result->fetch_assoc()): ?>
+    <tr>
+        <td><?= htmlspecialchars($row['service_name']) ?></td>
+        <td><?= htmlspecialchars($row['description']) ?></td>
+        <td><?= number_format($row['price'], 2) ?> บาท</td>
+        <td><?= htmlspecialchars($row['btu_range'] ?: '-') ?></td>
+        <td><?= htmlspecialchars($row['air_type'] ?: '-') ?></td>
+        <td>
+            <?php if (!empty($row['image'])): ?>
+                <img src='uploads/<?= htmlspecialchars($row['image']) ?>' alt='ภาพบริการ' style="max-width:100px;">
+            <?php else: ?>
+                ไม่มีภาพ
+            <?php endif; ?>
+        </td>
+        <td>
+            <a href='edit_service.php?service_id=<?= htmlspecialchars($row['service_id']) ?>' class='btn btn-edit'>แก้ไข</a>
+            <a href='delete_service.php?service_id=<?= htmlspecialchars($row['service_id']) ?>' class='btn btn-delete' onclick='return confirm("ยืนยันการลบ?");'>ลบ</a>
+        </td>
+    </tr>
+    <?php endwhile; ?>
+</tbody>
 
-
-                            <td><?= htmlspecialchars($row['description']) ?></td>
-                            <td><?= number_format($row['price'], 2) ?> บาท</td>
-                            <td>
-                                <?php if (!empty($row['image'])): ?>
-                                    <img src='uploads/<?= htmlspecialchars($row['image']) ?>' alt='ภาพบริการ'>
-                                <?php else: ?>
-                                    ไม่มีภาพ
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <a href='edit_service.php?service_id=<?= htmlspecialchars($row['service_id']) ?>' class='btn btn-edit'>แก้ไข</a>
-                                <a href='delete_service.php?service_id=<?= htmlspecialchars($row['service_id']) ?>' class='btn btn-delete' onclick='return confirm("ยืนยันการลบ?");'>ลบ</a>
-                            </td>
-                        </tr>
-                        <?php endwhile; ?>
-                    </tbody>
                 </table>
             </div>
             <?php else: ?>

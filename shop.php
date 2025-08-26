@@ -25,12 +25,12 @@ $service_id = isset($_GET['service_id']) ? intval($_GET['service_id']) : 0;
 
 if ($service_id > 0) {
     // ถ้ามีการส่ง service_id มา → ดึงเฉพาะบริการนั้น
-    $service_sql = "SELECT * FROM services WHERE shop_id = ? AND service_id = ? AND is_approved = 1";
+    $service_sql = "SELECT * FROM services WHERE shop_id = ? AND service_id = ?";
     $service_stmt = $conn->prepare($service_sql);
     $service_stmt->bind_param("ii", $shop_id, $service_id);
 } else {
     // ถ้าไม่มี service_id → ดึงบริการทั้งหมดของร้าน
-    $service_sql = "SELECT * FROM services WHERE shop_id = ? AND is_approved = 1";
+    $service_sql = "SELECT * FROM services WHERE shop_id = ?";
     $service_stmt = $conn->prepare($service_sql);
     $service_stmt->bind_param("i", $shop_id);
 }
@@ -508,7 +508,7 @@ if (isset($_SESSION['user_id'])) {
             <!-- รูปภาพร้าน -->
         <?php if (!empty($shop['shop_image'])): ?>
             <div class="shop-image">
-                <img src="uploads/shop_images/<?= htmlspecialchars($shop['shop_image']) ?>" alt="<?= htmlspecialchars($shop['shop_name']) ?>">
+                <img src="uploads/<?= htmlspecialchars($shop['shop_image']) ?>" alt="<?= htmlspecialchars($shop['shop_name']) ?>">
             </div>
         <?php endif; ?>
         
@@ -528,32 +528,39 @@ if (isset($_SESSION['user_id'])) {
         </div>
 
         <!-- บริการ -->
-        <div class="section">
-            <h3><i class="fas fa-concierge-bell"></i> บริการที่ร้านนี้ให้บริการ</h3>
-            <div class="services-grid">
-                <?php while($row = $services->fetch_assoc()): ?>
-                <div class="service-card">
-                    <img src="uploads/<?= htmlspecialchars($row['image']); ?>" alt="<?= htmlspecialchars($row['service_name']) ?>">
-                    <h4><?= htmlspecialchars($row['service_name']) ?></h4>
-                    <p><?= htmlspecialchars($row['description']) ?></p>
-                    <div class="price">
-                        <i class="fas fa-tag"></i> ราคา: <?= number_format($row['price']) ?> บาท
-                    </div>
-                    <a href="booking_form.php?service_id=<?= $row['service_id']; ?>" class="btn-book">
-                        <i class="fas fa-calendar-check"></i> จองบริการนี้
-                    </a>
-                    <a href="add_to_cart.php?service_id=<?= $row['service_id']; ?>" class="btn-cart">
-    <i class="fas fa-shopping-cart"></i> เพิ่มลงตะกร้า
-</a>
+<div class="section">
+    <h3><i class="fas fa-concierge-bell"></i> บริการที่ร้านนี้ให้บริการ</h3>
+    <div class="services-grid">
+        <?php while($row = $services->fetch_assoc()): ?>
+        <div class="service-card">
+            <img src="uploads/<?= htmlspecialchars($row['image']); ?>" alt="<?= htmlspecialchars($row['service_name']) ?>">
+            <h4><?= htmlspecialchars($row['service_name']) ?></h4>
+            <p><?= htmlspecialchars($row['description']) ?></p>
 
+            <?php if (!empty($row['btu_range'])): ?>
+                <p><i class="fas fa-thermometer-half"></i> BTU: <?= htmlspecialchars($row['btu_range']) ?></p>
+            <?php endif; ?>
 
+            <?php if (!empty($row['air_type'])): ?>
+                <p><i class="fas fa-fan"></i> ชนิดแอร์: <?= htmlspecialchars($row['air_type']) ?></p>
+            <?php endif; ?>
 
-
-                    
-                </div>
-                <?php endwhile; ?>
+            <div class="price">
+                <i class="fas fa-tag"></i> ราคา: <?= number_format($row['price']) ?> บาท
             </div>
+
+            <a href="booking_form.php?service_id=<?= $row['service_id']; ?>" class="btn-book">
+                <i class="fas fa-calendar-check"></i> จองบริการนี้
+            </a>
+
+            <a href="add_to_cart.php?service_id=<?= $row['service_id']; ?>" class="btn-cart">
+                <i class="fas fa-shopping-cart"></i> เพิ่มลงตะกร้า
+            </a>
         </div>
+        <?php endwhile; ?>
+    </div>
+</div>
+
 
         <!-- รีวิว -->
         <div class="section">

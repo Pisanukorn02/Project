@@ -35,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description']);
     $price = floatval($_POST['price']);
     $service_type = $_POST['service_type'] ?? '';
+$btu_range    = $_POST['btu_range'] ?? '';
+$air_type     = $_POST['air_type'] ?? '';
+
     $newImage = $service['image'];  // ตั้งค่ารูปเดิมไว้ก่อน
 
     // เช็คอัพโหลดรูปภาพใหม่ไหม
@@ -67,10 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($message)) {
         // อัปเดตข้อมูลบริการ
-        $stmt = $conn->prepare("UPDATE services SET service_name=?, service_type=?, description=?, price=?, image=?, is_approved=0 WHERE service_id=? AND shop_id=?");
-        $stmt->bind_param("sssdsii", $service_name, $service_type, $description, $price, $newImage, $service_id, $shop_id);
+        $stmt = $conn->prepare("UPDATE services SET service_name=?, service_type=?, description=?, price=?, image=?, air_type=?, btu_range=?, is_approved=0 WHERE service_id=? AND shop_id=?");
+$stmt->bind_param("sssssssii", $service_name, $service_type, $description, $price, $newImage, $air_type, $btu_range, $service_id, $shop_id);
+
         if ($stmt->execute()) {
-            $message = "อัปเดตบริการเรียบร้อยแล้ว รอการอนุมัติใหม่";
+            $message = "อัปเดตบริการเรียบร้อยแล้ว";
 
             // อัปเดต $service สำหรับแสดงในฟอร์มหลัง submit
             $service['service_name'] = $service_name;
@@ -195,6 +199,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="ล้าง" <?= $service['service_type'] === 'ล้าง' ? 'selected' : '' ?>>ล้าง</option>
             <option value="ติดตั้ง/เคลื่อนย้าย" <?= $service['service_type'] === 'ติดตั้ง/เคลื่อนย้าย' ? 'selected' : '' ?>>ติดตั้ง/เคลื่อนย้าย</option>
         </select>
+
+        <label>ขนาด BTU</label>
+<select name="btu_range" required>
+    <option value="">-- เลือกขนาด BTU --</option>
+    <option value="8000-12000" <?= $service['btu_range'] === '8000-12000' ? 'selected' : '' ?>>8000-12000 BTU</option>
+    <option value="12000-18000" <?= $service['btu_range'] === '12000-18000' ? 'selected' : '' ?>>12000-18000 BTU</option>
+    <option value="18000-24000" <?= $service['btu_range'] === '18000-24000' ? 'selected' : '' ?>>18000-24000 BTU</option>
+    <option value="24000-30000" <?= $service['btu_range'] === '24000-30000' ? 'selected' : '' ?>>24000-30000 BTU</option>
+</select>
+
+
+        <label>ชนิดแอร์</label>
+<select id="air_type" name="air_type" required>
+        <option value="">-- เลือกชนิดแอร์ --</option>
+        <option value="แอร์ติดผนัง">แอร์ติดผนัง</option>
+        <option value="แอร์แขวน">แอร์แขวน</option>
+        <option value="แอร์ตั้งพื้น">แอร์ตั้งพื้น</option>
+        <option value="อื่นๆ">อื่นๆ</option>
+    </select>
+
 
         <label>รายละเอียด</label>
         <textarea name="description" rows="4" required><?= htmlspecialchars($service['description']) ?></textarea>
