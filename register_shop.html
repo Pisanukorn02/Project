@@ -3,101 +3,190 @@
 <head>
     <meta charset="UTF-8" />
     <title>สมัครร้านค้า</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #fff3cd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .register-box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            width: 350px;
-        }
-        input, label {
-            width: 100%;
-            display: block;
-            margin-bottom: 10px;
-        }
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        input[type="submit"] {
-            background-color: #ffc107;
-            color: #333;
-            cursor: pointer;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        input[type="submit"]:hover {
-            background-color: #e0a800;
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        #map {
-            height: 300px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-        }
-        /* Style สำหรับ popup ที่แก้ไขแล้ว */
-        .popup {
-            display: none; /* เริ่มต้นด้วยการซ่อน */
-            position: fixed;
-            z-index: 1000; /* ค่า z-index สูงเพื่อให้ทับทุกอย่าง */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            justify-content: center;
-            align-items: center;
-        }
-        .popup-content {
-            background-color: #fefefe;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
-            position: relative;
-        }
-        .close-btn {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close-btn:hover,
-        .close-btn:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .rules-link {
-            color: #007bff;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-    </style>
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet/dist/leaflet.css"
     />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fccb62e0 0%, #f64242 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        .register-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        h2 {
+            font-size: 2em;
+            color: #333;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background-color: #f9f9f9;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ffc107;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+        }
+
+        input[type="file"] {
+            border: none;
+            background-color: transparent;
+            padding-left: 0;
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+            opacity: 0.8;
+        }
+        
+        input[type="submit"]:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: 0.6;
+            transform: none;
+        }
+
+        input[type="submit"]:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 193, 7, 0.6);
+            opacity: 1;
+        }
+
+        #map {
+            height: 350px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+            background-color: #fefefe;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 15px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease-in-out;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 30px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #333;
+            text-decoration: none;
+        }
+        
+        .rules-link {
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .rules-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        
+        #acceptRules + label {
+            display: inline-block;
+            width: auto;
+            margin-bottom: 0;
+        }
+        
+        #acceptRules {
+            width: auto;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+    </style>
 </head>
 <body>
     <form class="register-box" action="register_shop_process.php" method="POST" enctype="multipart/form-data">
@@ -114,7 +203,7 @@
         <div class="form-group">
             <label for="shop_image">รูปร้านค้า (เช่น รูปหน้าร้าน, โลโก้):</label>
             <input type="file" id="shop_image" name="shop_image" accept="image/*" required />
-            <small style="color: #666;">อนุญาตเฉพาะไฟล์รูปภาพ (JPG, PNG, GIF) ขนาดไม่เกิน 5MB</small>
+            <small style="color: #666; display: block; margin-top: -10px; margin-bottom: 10px;">อนุญาตเฉพาะไฟล์รูปภาพ (JPG, PNG, GIF) ขนาดไม่เกิน 5MB</small>
         </div>
         <label for="province">จังหวัด</label>
         <select name="province" id="province" required>
@@ -205,28 +294,26 @@
 
         <input type="hidden" name="latitude" id="lat" required />
         <input type="hidden" name="longitude" id="lng" required />
-<div style="margin-top: 10px;">
-    <input type="checkbox" id="acceptRules" />
-    <label for="acceptRules">ฉันยอมรับ<a href="#" class="rules-link" id="showRules">กฎและเงื่อนไขของระบบ</a></label>
-</div>
+        <div style="margin-top: 10px; text-align: left;">
+            <input type="checkbox" id="acceptRules" />
+            <label for="acceptRules">ฉันยอมรับ<a href="#" class="rules-link" id="showRules">กฎและเงื่อนไขของระบบ</a></label>
+        </div>
         <input type="submit" value="ลงทะเบียนร้านค้า" id="submitBtn" disabled />
-
     </form>
     <div id="rulesPopup" class="popup">
-      <div class="popup-content">
-        <span class="close-btn">&times;</span>
-        <h2>ข้อตกลงและเงื่อนไขการใช้บริการ</h2>
-        <p>1. **การสมัครสมาชิก:** ผู้สมัครต้องให้ข้อมูลที่เป็นจริงและถูกต้องครบถ้วนในการลงทะเบียน</p>
-        <p>2. **การใช้งาน:** ห้ามใช้บริการในทางที่ผิดกฎหมายหรือละเมิดสิทธิของผู้อื่น</p>
-        <p>3. **การรับผิดชอบ:** เจ้าของร้านมีหน้าที่รับผิดชอบต่อสินค้าและข้อมูลที่เผยแพร่</p>
-        <p>4. **การยกเลิกบริการ:** ระบบขอสงวนสิทธิ์ในการยกเลิกบัญชีผู้ใช้งาน หากพบการกระทำที่ผิดเงื่อนไข</p>
-        <p><em>(ข้อความกฎและเงื่อนไขเพิ่มเติมสามารถเพิ่มได้ที่นี่)</em></p>
-      </div>
+        <div class="popup-content">
+            <span class="close-btn">&times;</span>
+            <h2>ข้อตกลงและเงื่อนไขการใช้บริการ</h2>
+            <p>1. **การสมัครสมาชิก:** ผู้สมัครต้องให้ข้อมูลที่เป็นจริงและถูกต้องครบถ้วนในการลงทะเบียน</p>
+            <p>2. **การใช้งาน:** ห้ามใช้บริการในทางที่ผิดกฎหมายหรือละเมิดสิทธิของผู้อื่น</p>
+            <p>3. **การรับผิดชอบ:** เจ้าของร้านมีหน้าที่รับผิดชอบต่อสินค้าและข้อมูลที่เผยแพร่</p>
+            <p>4. **การยกเลิกบริการ:** ระบบขอสงวนสิทธิ์ในการยกเลิกบัญชีผู้ใช้งาน หากพบการกระทำที่ผิดเงื่อนไข</p>
+            <p><em>(ข้อความกฎและเงื่อนไขเพิ่มเติมสามารถเพิ่มได้ที่นี่)</em></p>
+        </div>
     </div>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([16.8, 100.3], 13);
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -241,11 +328,9 @@
             document.getElementById('lat').value = e.latlng.lat;
             document.getElementById('lng').value = e.latlng.lng;
             
-            // เรียกฟังก์ชันเพื่อค้นหาที่อยู่จากพิกัด
             getAddress(e.latlng.lat, e.latlng.lng);
         });
 
-        // ฟังก์ชันใหม่: ค้นหาที่อยู่จากพิกัด
         function getAddress(lat, lng) {
             const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
             fetch(url)
@@ -274,18 +359,15 @@
             submitBtn.disabled = !this.checked;
         });
 
-        // เปิด popup เมื่อคลิกลิงก์
         rulesLink.addEventListener("click", function(event) {
             event.preventDefault();
             rulesPopup.style.display = "flex";
         });
 
-        // ปิด popup เมื่อคลิกปุ่มปิด
         closeBtn.addEventListener("click", function() {
             rulesPopup.style.display = "none";
         });
 
-        // ปิด popup เมื่อคลิกนอกกรอบ
         window.addEventListener("click", function(event) {
             if (event.target == rulesPopup) {
                 rulesPopup.style.display = "none";
