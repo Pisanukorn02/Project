@@ -23,7 +23,13 @@ if (!empty($start_date) && !empty($end_date)) {
 }
 
 // รายได้รอรับ
-$sql_accepted = "SELECT SUM(s.price) AS total FROM bookings b JOIN services s ON b.service_id = s.service_id WHERE $where_clause AND b.status = 'accepted'";
+$sql_accepted = "
+SELECT SUM(s.price * bd.quantity) AS total 
+FROM bookings b
+JOIN booking_details bd ON b.booking_id = bd.booking_id
+JOIN services s ON bd.service_id = s.service_id
+WHERE $where_clause AND b.status = 'accepted'
+";
 $stmt = $conn->prepare($sql_accepted);
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
@@ -32,13 +38,21 @@ $stmt->fetch();
 $stmt->close();
 
 // รายได้จบงาน
-$sql_completed = "SELECT SUM(s.price) AS total FROM bookings b JOIN services s ON b.service_id = s.service_id WHERE $where_clause AND b.status = 'completed'";
+$sql_completed = "
+SELECT SUM(s.price * bd.quantity) AS total 
+FROM bookings b
+JOIN booking_details bd ON b.booking_id = bd.booking_id
+JOIN services s ON bd.service_id = s.service_id
+WHERE $where_clause AND b.status = 'completed'
+";
 $stmt = $conn->prepare($sql_completed);
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $stmt->bind_result($completed_total);
 $stmt->fetch();
 $stmt->close();
+
+
 
 // นับจำนวนสถานะงาน
 $status_counts = ['accepted' => 0, 'rejected' => 0, 'completed' => 0];

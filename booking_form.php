@@ -130,6 +130,8 @@ ul.service-list li { margin-bottom: 5px; }
 
 <form action="booking_process.php" method="POST" enctype="multipart/form-data" id="bookingForm">
 <input type="hidden" name="shop_id" value="<?= $shop['shop_id'] ?>">
+<input type="hidden" name="total_price" value="<?= $total_price ?>">
+
 <?php foreach ($services as $s): ?>
 <input type="hidden" name="service_id[]" value="<?= $s['service_id'] ?>">
 <input type="hidden" name="quantity[]" value="<?= $s['quantity'] ?>">

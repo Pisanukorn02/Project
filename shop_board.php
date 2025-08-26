@@ -14,6 +14,17 @@ if (!isset($_SESSION['shop_id']) || $_SESSION['role'] !== 'shop') {
 
 $shop_id = $_SESSION['shop_id'];
 
+
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bookings WHERE shop_id = ? AND status = 'rejected'");
+$stmt->bind_param("i", $shop_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$status_counts = [];
+if ($row_count = $result->fetch_assoc()) {
+    $status_counts['rejected'] = $row_count['total'];
+}
+$stmt->close();
+
 // ดึงข้อมูลร้านจากฐานข้อมูล
 $stmt = $conn->prepare("SELECT shop_name, shop_image FROM shops WHERE shop_id = ?");
 $stmt->bind_param("i", $shop_id);
@@ -81,16 +92,24 @@ if (!in_array($status_filter, $allowed_status)) {
 }
 
 // ดึงข้อมูลจองตามสถานะ
-$sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, s.service_name , s.service_type
+$sql = "SELECT b.booking_id, b.user_id, b.booking_date, b.booking_time, b.address, b.location_lat, b.location_lng,
+               b.payment_slip, b.status, u.name AS customer_name, u.phone AS customer_phone,
+               SUM(s.price * d.quantity) AS total_price,
+               GROUP_CONCAT(CONCAT(d.service_id, ':', s.service_name) SEPARATOR ', ') AS services
         FROM bookings b
         JOIN users u ON b.user_id = u.user_id
-        JOIN services s ON b.service_id = s.service_id
+        JOIN booking_details d ON b.booking_id = d.booking_id
+        JOIN services s ON d.service_id = s.service_id
         WHERE b.shop_id = ? AND b.status = ?
+        GROUP BY b.booking_id
         ORDER BY b.booking_date ASC, b.booking_time ASC";
+
+
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("is", $shop_id, $status_filter);
 $stmt->execute();
 $bookings = $stmt->get_result();
+
 
 // ดึงรายการบริการทั้งหมด
 $sql_services = "SELECT * FROM services WHERE shop_id = ?";
@@ -100,6 +119,8 @@ $stmt_services->execute();
 $services_result = $stmt_services->get_result();
 $stmt_services->close();
 ?>
+
+
 
 
 <style>.shop-image-box {
@@ -196,7 +217,9 @@ $stmt_services->close();
                     <tbody>
                         <?php while ($row = $services_result->fetch_assoc()): ?>
                         <tr>
-                            <td><?= htmlspecialchars($row['service_name']) ?></td>
+                            <td><?= htmlspecialchars($row['service_name'] ?? $row['service_name']) ?></td>
+
+
                             <td><?= htmlspecialchars($row['description']) ?></td>
                             <td><?= number_format($row['price'], 2) ?> บาท</td>
                             <td>
@@ -223,104 +246,109 @@ $stmt_services->close();
             <?php endif; ?>
         </div>
 
-        <div class="section">
-            <h3><i class="fas fa-calendar-check"></i> รายการจอง</h3>
-            <div class="status-filter-menu">
-                <a href="?status=pending" class="<?= $status_filter==='pending'?'active':'' ?>">รอดำเนินการ (<?= $pendingBookings ?>)</a>
-                <a href="?status=accepted" class="<?= $status_filter==='accepted'?'active':'' ?>">รับงานแล้ว (<?= $acceptedBookings ?>)</a>
-                <a href="?status=rejected" class="<?= $status_filter==='rejected'?'active':'' ?>">ปฏิเสธ (<?= $status_counts['rejected'] ?? 0 ?>)</a>
-                <a href="?status=completed" class="<?= $status_filter==='completed'?'active':'' ?>">เสร็จสิ้น (<?= $completedBookings ?>)</a>
-            </div>
-            <?php if ($bookings->num_rows > 0): ?>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ชื่อลูกค้า</th>
-                            <th>เบอร์</th>
-                            <th>บริการ</th>
-                            <th>วันเวลาจอง</th>
-                            <th>ที่อยู่</th>
-                            <th>รูปหน้างาน</th>
-                            <th>สถานะ</th>
-                            <th>การจัดการ</th>
-                            <th>โลเคชั่น</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($row = $bookings->fetch_assoc()): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($row['customer_name']) ?></td>
-                            <td><?= htmlspecialchars($row['customer_phone']) ?></td>
-                            <td><?= htmlspecialchars($row['service_name']) ?></td>
-                            <td><?= htmlspecialchars($row['booking_date']) . " " . htmlspecialchars($row['booking_time']) ?></td>
-                            <td><?= htmlspecialchars($row['address']) ?></td>
-                            <td>
-                                <?php if (!empty($row['payment_slip'])): ?>
-                                    <?php
-                                        // ป้องกันปัญหา path ซ้ำซ้อน
-                                        $slip_path = (strpos($row['payment_slip'], 'uploads/') === 0) ? $row['payment_slip'] : 'uploads/slips/' . $row['payment_slip'];
-                                    ?>
-                                    <a href='<?= htmlspecialchars($slip_path) ?>' target='_blank'>ดูรูป</a>
-                                <?php else: ?>
-                                    -
-                                <?php endif; ?>
-                            </td>
-                            <td><?= htmlspecialchars($row['status']) ?></td>
-                            <td>
-                                <?php if ($row['status'] === 'pending'): ?>
-    <form method='POST' action='booking_action.php' style='display:inline-block;' 
-          onsubmit="return confirm('คุณต้องการยืนยันการรับงานใช่หรือไม่?');">
-        <input type='hidden' name='booking_id' value='<?= htmlspecialchars($row['booking_id']) ?>'>
-        <button type='submit' class='btn btn-approve' name='action' value='approve'>รับงาน</button>
-    </form>
+       <div class="section">
+    <h3><i class="fas fa-calendar-check"></i> รายการจอง</h3>
+    <div class="status-filter-menu">
+        <a href="?status=pending" class="<?= $status_filter==='pending'?'active':'' ?>">รอดำเนินการ (<?= $pendingBookings ?>)</a>
+        <a href="?status=accepted" class="<?= $status_filter==='accepted'?'active':'' ?>">รับงานแล้ว (<?= $acceptedBookings ?>)</a>
+        <a href="?status=rejected" class="<?= $status_filter==='rejected'?'active':'' ?>">ปฏิเสธ (<?= $status_counts['rejected'] ?? 0 ?>)</a>
+        <a href="?status=completed" class="<?= $status_filter==='completed'?'active':'' ?>">เสร็จสิ้น (<?= $completedBookings ?>)</a>
+    </div>
 
-    <form method='POST' action='booking_action.php' style='display:inline-block;' 
-          onsubmit="return confirm('คุณต้องการปฏิเสธงานนี้ใช่หรือไม่?');">
-        <input type='hidden' name='booking_id' value='<?= htmlspecialchars($row['booking_id']) ?>'>
-        <button type='submit' class='btn btn-reject' name='action' value='reject'>ปฏิเสธ</button>
-    </form>
-<?php elseif ($row['status'] === 'accepted'): ?>
-    <form method="POST" action="booking_action.php" enctype="multipart/form-data" 
-          onsubmit="return confirm('อัพโหลดรูปหลักฐานและยืนยันการจบงาน?');" 
-          style="display:inline-block;">
-        <input type="hidden" name="booking_id" value="<?= htmlspecialchars($row['booking_id']) ?>">
-        <input type="file" name="completion_proof" accept="image/*" required style="margin-bottom:5px; display:block;">
-        <button type="submit" class="btn btn-complete" name="action" value="complete">จบงาน</button>
-    </form>
-<?php elseif ($row['status'] === 'rejected'): ?>
-    <span style="color:#dc3545;">ปฏิเสธงานแล้ว</span>
-<?php elseif ($row['status'] === 'completed'): ?>
-    <span style="color:#28a745;">งานเสร็จสิ้นแล้ว</span>
-
-
-
-                                    </form>
-                                <?php elseif ($row['status'] === 'rejected'): ?>
-                                    <span style="color:#dc3545;">ปฏิเสธงานแล้ว</span>
-                                <?php elseif ($row['status'] === 'completed'): ?>
-                                    <span style="color:#28a745;">งานเสร็จสิ้นแล้ว</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if (!empty($row['location_lat']) && !empty($row['location_lng'])): ?>
-                                    <a href='https://www.google.com/maps/search/?api=1&query=<?= htmlspecialchars($row['location_lat']) ?>,<?= htmlspecialchars($row['location_lng']) ?>' target='_blank' class='btn btn-map'>ดูแผนที่</a>
-                                <?php else: ?>
-                                    -
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>ยังไม่มีการจองจากลูกค้าในสถานะนี้</p>
-                </div>
-            <?php endif; ?>
+    <?php if ($bookings->num_rows > 0): ?>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>ชื่อลูกค้า</th>
+                    <th>เบอร์</th>
+                    <th>บริการ</th>
+                    <th>วันเวลาจอง</th>
+                    <th>ที่อยู่</th>
+                    <th>รูปหน้างาน</th>
+                    <th>สถานะ</th>
+                    <th>ค่าบริการ</th>
+                    <th>การจัดการ</th>
+                    <th>โลเคชั่น</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php while ($row = $bookings->fetch_assoc()): ?>
+                <tr>
+                    <td><?= htmlspecialchars($row['customer_name']) ?></td>
+                    <td><?= htmlspecialchars($row['customer_phone']) ?></td>
+                    <td>
+                        <?php
+                        if (!empty($row['services'])) {
+                            $services = explode(', ', $row['services']);
+                            foreach ($services as $s) {
+                                $parts = explode(':', $s, 2);
+                                echo htmlspecialchars($parts[1] ?? '') . "<br>";
+                            }
+                        } else {
+                            echo "-";
+                        }
+                        ?>
+                    </td>
+                    <td><?= htmlspecialchars($row['booking_date']) . " " . htmlspecialchars($row['booking_time']) ?></td>
+                    <td><?= htmlspecialchars($row['address']) ?></td>
+                    <td>
+                        <?php if (!empty($row['payment_slip'])): 
+                            $slip_path = (strpos($row['payment_slip'], 'uploads/') === 0) ? 
+                                          $row['payment_slip'] : 'uploads/slips/' . $row['payment_slip'];
+                        ?>
+                            <a href="<?= htmlspecialchars($slip_path) ?>" target="_blank">ดูรูป</a>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
+                    <td><?= htmlspecialchars($row['status']) ?></td>
+                    <td><?= number_format($row['total_price'], 2) ?> บาท</td>
+                    <td>
+                        <?php if ($row['status'] === 'pending'): ?>
+                            <form method="POST" action="booking_action.php" style="display:inline-block;"
+                                  onsubmit="return confirm('คุณต้องการยืนยันการรับงานใช่หรือไม่?');">
+                                <input type="hidden" name="booking_id" value="<?= htmlspecialchars($row['booking_id']) ?>">
+                                <button type="submit" class="btn btn-approve" name="action" value="approve">รับงาน</button>
+                            </form>
+                            <form method="POST" action="booking_action.php" style="display:inline-block;"
+                                  onsubmit="return confirm('คุณต้องการปฏิเสธงานนี้ใช่หรือไม่?');">
+                                <input type="hidden" name="booking_id" value="<?= htmlspecialchars($row['booking_id']) ?>">
+                                <button type="submit" class="btn btn-reject" name="action" value="reject">ปฏิเสธ</button>
+                            </form>
+                        <?php elseif ($row['status'] === 'accepted'): ?>
+                            <form method="POST" action="booking_action.php" enctype="multipart/form-data" style="display:inline-block;"
+                                  onsubmit="return confirm('คุณต้องการอัปโหลดรูปและยืนยันการจบงาน?');">
+                                <input type="hidden" name="booking_id" value="<?= htmlspecialchars($row['booking_id']) ?>">
+                                <input type="file" name="completion_proof" accept="image/*" required style="display:block; margin-bottom:5px;">
+                                <button type="submit" class="btn btn-complete" name="action" value="complete">จบงาน</button>
+                            </form>
+                        <?php elseif ($row['status'] === 'rejected'): ?>
+                            <span style="color:#dc3545;">ปฏิเสธงานแล้ว</span>
+                        <?php elseif ($row['status'] === 'completed'): ?>
+                            <span style="color:#28a745;">งานเสร็จสิ้นแล้ว</span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php if (!empty($row['location_lat']) && !empty($row['location_lng'])): ?>
+                            <a href="https://www.google.com/maps/search/?api=1&query=<?= htmlspecialchars($row['location_lat']) ?>,<?= htmlspecialchars($row['location_lng']) ?>" target="_blank" class="btn btn-map">ดูแผนที่</a>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+        <div class="empty-state">
+            <i class="fas fa-calendar-times"></i>
+            <p>ยังไม่มีการจองจากลูกค้าในสถานะนี้</p>
         </div>
+    <?php endif; ?>
+</div>
+
         
         <div class="section text-center">
             <a href="report.php" class="add-btn" style="background-color: #34495e;">

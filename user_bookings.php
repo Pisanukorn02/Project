@@ -9,7 +9,25 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
 }
 
 $user_id = $_SESSION['user_id'];
-$result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b JOIN services s ON b.service_id = s.service_id JOIN shops sh ON b.shop_id = sh.shop_id WHERE b.user_id = $user_id ORDER BY b.created_at DESC");
+$sql = "SELECT b.booking_id, b.booking_date, b.booking_time, b.address, b.location_lat, b.location_lng,
+               b.payment_slip, b.status, b.complete_image,
+               sh.shop_name,
+               SUM(s.price * d.quantity) AS total_price,
+               GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services
+        FROM bookings b
+        JOIN shops sh ON b.shop_id = sh.shop_id
+        JOIN booking_details d ON b.booking_id = d.booking_id
+        JOIN services s ON d.service_id = s.service_id
+        WHERE b.user_id = ?
+        GROUP BY b.booking_id
+        ORDER BY b.created_at DESC";
+
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -196,87 +214,74 @@ $result = $conn->query("SELECT b.*, s.service_name, sh.shop_name FROM bookings b
     </div>
     
     <div class="booking-table">
-        <table>
-            <tr>
-                <th>ร้านค้า</th>
-                <th>บริการ</th>
-                <th>วันที่/เวลา</th>
-                <th>สถานที่</th>
-                <th>สถานะ</th>
-                <th>หน้างาน</th>
-                <th>ใบเสร็จ</th>
-                <th>รูปจบงาน</th>
-            </tr>
-            <?php while ($row = $result->fetch_assoc()): ?>
-            <tr>
-                <td><?= htmlspecialchars($row['shop_name']) ?></td>
-                <td><?= htmlspecialchars($row['service_name']) ?></td>
-                <td><?= $row['booking_date'] ?> <?= $row['booking_time'] ?></td>
-                <td><?= htmlspecialchars($row['address']) ?></td>
-                <td>
-                    <?php
-                    $status_text = '';
-                    switch ($row['status']) {
-                        case 'pending':
-                            $status_text = 'รอการตอบรับ';
-                            break;
-                        case 'accepted':
-                            $status_text = 'ร้านค้ารับงานแล้ว';
-                            break;
-                        case 'completed':
-                            $status_text = 'งานเสร็จสิ้น';
-                            break;
-                        case 'rejected':
-                            $status_text = 'ถูกร้านค้าปฏิเสธ';
-                            break;
-                        default:
-                            $status_text = htmlspecialchars($row['status']);
-                            break;
-                    }
-                    echo $status_text;
-                    ?>
-                </td>
+       <table>
+    <tr>
+        <th>ร้านค้า</th>
+        <th>บริการ</th>
+        <th>ราคายอดรวม(บาท)</th>
+        <th>วันที่/เวลา</th>
+        <th>สถานที่</th>
+        <th>สถานะ</th>
+        <th>หน้างาน</th>
+        <th>ใบเสร็จ</th>
+        <th>รูปจบงาน</th>
+       
+    </tr>
+    <?php while ($row = $result->fetch_assoc()): ?>
+    <tr>
+        <td><?= htmlspecialchars($row['shop_name']) ?></td>
+        <td>
+            <?php 
+            $services = explode(',', $row['services']);
+            foreach ($services as $service) {
+                echo htmlspecialchars($service) . "<br>";
+            }
+            ?>
+        </td>
+ <td><?= number_format($row['total_price'], 2) ?></td>
 
-                <td>
-                    <?php if ($row['payment_slip']): 
-                        $slip_path = $row['payment_slip'];
-                        if (strpos($slip_path, 'uploads/') === false) {
-                            $slip_path = 'uploads/slips/' . $slip_path;
-                        }
-                    ?>
-                        <a href="<?= htmlspecialchars($slip_path) ?>" target="_blank">ดูหน้างาน</a>
-                    <?php else: ?>
-                        -
-                    <?php endif; ?>
-                </td>
+        <td><?= $row['booking_date'] ?> <?= $row['booking_time'] ?></td>
+        <td><?= htmlspecialchars($row['address']) ?></td>
+        <td>
+            <?php
+            $status_text = '';
+            switch ($row['status']) {
+                case 'pending': $status_text = 'รอการตอบรับ'; break;
+                case 'accepted': $status_text = 'ร้านค้ารับงานแล้ว'; break;
+                case 'completed': $status_text = 'งานเสร็จสิ้น'; break;
+                case 'rejected': $status_text = 'ถูกร้านค้าปฏิเสธ'; break;
+                default: $status_text = htmlspecialchars($row['status']); break;
+            }
+            echo $status_text;
+            ?>
+        </td>
+        <td>
+            <?php if ($row['payment_slip']): 
+                $slip_path = strpos($row['payment_slip'], 'uploads/') === false ? 'uploads/slips/' . $row['payment_slip'] : $row['payment_slip'];
+            ?>
+                <a href="<?= htmlspecialchars($slip_path) ?>" target="_blank">ดูหน้างาน</a>
+            <?php else: ?> - <?php endif; ?>
+        </td>
+        <td>
+            <?php if ($row['status'] === 'completed'): ?>
+                <a href="receipt.php?booking_id=<?= $row['booking_id'] ?>" target="_blank" class="slip-link">
+                    <i class="fas fa-print"></i> พิมพ์ใบเสร็จ
+                </a>
+            <?php else: ?> - <?php endif; ?>
+        </td>
+        <td>
+            <?php
+            if (!empty($row['complete_image'])) {
+                $img_path = strpos($row['complete_image'], 'uploads/') === false ? 'uploads/completions/' . $row['complete_image'] : $row['complete_image'];
+                echo '<img src="' . htmlspecialchars($img_path) . '" class="complete-img" onclick="openImage(this.src)">';
+            } else { echo "-"; }
+            ?>
+        </td>
+       
+    </tr>
+    <?php endwhile; ?>
+</table>
 
-                <td>
-                    <?php if ($row['status'] === 'completed'): ?>
-                        <a href="receipt.php?booking_id=<?= $row['booking_id'] ?>" target="_blank" class="slip-link">
-                            <i class="fas fa-print"></i> พิมพ์ใบเสร็จ
-                        </a>
-                    <?php else: ?>
-                        -
-                    <?php endif; ?>
-                </td>
-
-                <td>
-                    <?php
-                    if (!empty($row['complete_image'])) {
-                        $img_path = $row['complete_image'];
-                        if (strpos($img_path, 'uploads/') === false) {
-                            $img_path = 'uploads/completions/' . $img_path;
-                        }
-                        echo '<img src="' . htmlspecialchars($img_path) . '" class="complete-img" onclick="openImage(this.src)">';
-                    } else {
-                        echo "-";
-                    }
-                    ?>
-                </td>
-
-            </tr>
-            <?php endwhile; ?>
-        </table>
     </div>
 </div>
 

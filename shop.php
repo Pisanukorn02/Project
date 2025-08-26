@@ -597,26 +597,23 @@ if (isset($_SESSION['user_id'])) {
         <?php if ($can_review): ?>
             <div class="section">
                 <h3><i class="fas fa-edit"></i> เขียนรีวิว</h3>
-                <form action="submit_review.php" method="POST" class="review-form">
-                    <input type="hidden" name="booking_id" value="<?= $pending_booking_id ?>">
-                    
-                    <div class="form-group">
-                        <label for="rating"><i class="fas fa-star"></i> คะแนน (1-5 ดาว):</label>
-                        <div class="stars-input">
-                            <input type="number" name="rating" id="rating" min="1" max="5" required>
-                            <span style="color: #ff9800;">⭐⭐⭐⭐⭐</span>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="comment"><i class="fas fa-comment"></i> ความคิดเห็น:</label>
-                        <textarea name="comment" id="comment" rows="4" placeholder="แบ่งปันประสบการณ์ของคุณกับร้านนี้..." required></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-paper-plane"></i> ส่งรีวิว
-                    </button>
-                </form>
+              <form action="submit_review.php" method="POST" class="review-form">
+    <input type="hidden" name="booking_id" value="<?= $pending_booking_id ?>">
+    <input type="hidden" name="shop_id" value="<?= $shop['shop_id'] ?>">
+    
+    <div class="form-group">
+        <label for="rating"><i class="fas fa-star"></i> คะแนน (1-5 ดาว):</label>
+        <input type="number" name="rating" id="rating" min="1" max="5" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="comment"><i class="fas fa-comment"></i> ความคิดเห็น:</label>
+        <textarea name="comment" id="comment" rows="4" required></textarea>
+    </div>
+    
+    <button type="submit" class="btn-submit">ส่งรีวิว</button>
+</form>
+
             </div>
         <?php else: ?>
             <div class="section">
