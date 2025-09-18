@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['service_id'])) {
     $address        = trim($_POST['address'] ?? '');
     $location_lat   = $_POST['location_lat'] ?? '';
     $location_lng   = $_POST['location_lng'] ?? '';
-    $total_price    = floatval($_POST['total_price'] ?? 0);
 
     if (!$service_ids || !$customer_name || !$customer_phone || !$booking_date || !$booking_time || !$address || !$location_lat || !$location_lng) {
         die("ข้อมูลไม่ครบถ้วน");
@@ -37,12 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['service_id'])) {
 
         if (move_uploaded_file($_FILES['payment_slip']['tmp_name'], $target_path)) {
             $slip_path = $target_path;
-        } else {
-            die("ไม่สามารถอัปโหลดสลิปได้");
-        }
-    } else {
-        die("กรุณาอัปโหลดสลิป");
-    }
+        } else { die("ไม่สามารถอัปโหลดสลิปได้"); }
+    } else { die("กรุณาอัปโหลดสลิป"); }
 
     // ตรวจสอบเวลาซ้อนกัน (2 ชั่วโมง)
     $stmt_check = $conn->prepare("SELECT booking_time FROM bookings 
@@ -60,43 +55,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['service_id'])) {
     }
     $stmt_check->close();
 
-    // ดึงราคาของ service จากฐานข้อมูล
+    // ดึงราคาของ service และข้อมูลร้าน
     $placeholders = implode(',', array_fill(0, count($service_ids), '?'));
     $types = str_repeat('i', count($service_ids));
-    $stmt_prices = $conn->prepare("SELECT service_id, price FROM services WHERE service_id IN ($placeholders)");
+    $stmt_prices = $conn->prepare("SELECT s.service_id, s.price, sh.latitude, sh.longitude, sh.service_radius, sh.extra_price_per_km
+                                   FROM services s 
+                                   JOIN shops sh ON s.shop_id = sh.shop_id
+                                   WHERE s.service_id IN ($placeholders)");
     $stmt_prices->bind_param($types, ...$service_ids);
     $stmt_prices->execute();
     $result_prices = $stmt_prices->get_result();
 
     $servicePrices = [];
+    $shopInfo = null;
     while ($row = $result_prices->fetch_assoc()) {
         $servicePrices[$row['service_id']] = $row['price'];
+        $shopInfo = [
+            'lat' => $row['latitude'],
+            'lng' => $row['longitude'],
+            'radius' => $row['service_radius'] ?: 30,
+            'extra_price' => $row['extra_price_per_km'] ?: 50
+        ];
     }
     $stmt_prices->close();
 
-    // คำนวณ total_price อีกครั้ง (เพื่อความแม่นยำ)
-    $total_price = 0;
+    if (!$shopInfo) die("ร้านค้าไม่ถูกต้อง");
+
+    // ฟังก์ชันคำนวณระยะทาง
+    function getDistance($lat1,$lon1,$lat2,$lon2){
+        $R = 6371;
+        $dLat = deg2rad($lat2-$lat1);
+        $dLon = deg2rad($lon2-$lon1);
+        $a = sin($dLat/2)*sin($dLat/2) + cos(deg2rad($lat1))*cos(deg2rad($lat2))*sin($dLon/2)*sin($dLon/2);
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        return $R*$c;
+    }
+
+    // คำนวณ total_price + extra_fee
+    $total_price_calc = 0;
     foreach ($service_ids as $i => $sid) {
         $qty = intval($quantities[$i] ?? 1);
         $price = $servicePrices[$sid] ?? 0;
-        $total_price += $price * $qty;
+        $total_price_calc += $price * $qty;
     }
 
-    // Insert booking พร้อม total_price
-    $stmt = $conn->prepare("INSERT INTO bookings 
-        (user_id, shop_id, customer_name, customer_phone, booking_date, booking_time, address, location_lat, location_lng, payment_slip, total_price, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())");
+    $distance = getDistance($shopInfo['lat'], $shopInfo['lng'], floatval($location_lat), floatval($location_lng));
+    $extra_fee = 0;
+    if ($distance > $shopInfo['radius']) {
+        $extra_fee = ($distance - $shopInfo['radius']) * $shopInfo['extra_price'];
+    }
 
-    $stmt->bind_param("iissssssssd",
-        $user_id, $shop_id, $customer_name, $customer_phone,
-        $booking_date, $booking_time, $address, $location_lat, $location_lng,
-        $slip_path, $total_price
-    );
+    $total_price_final = $total_price_calc + $extra_fee;
+
+    // Insert booking
+    $sql = "INSERT INTO bookings 
+(user_id, shop_id, service_id, quantity, booking_date, booking_time, 
+ location_lat, location_lng, address, customer_name, customer_phone, 
+ payment_slip, total_price, extra_fee) 
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+$stmt = $conn->prepare($sql);
+
+$stmt->bind_param("iiiissddssssdd", 
+    $user_id, $shop_id, $service_id, $quantity,
+    $booking_date, $booking_time,
+    $location_lat, $location_lng, $address,
+    $customer_name, $customer_phone, $slip_path,
+    $total_price_final, $extra_fee
+);
     $stmt->execute();
     $booking_id = $conn->insert_id;
     $stmt->close();
 
-    // Insert รายการบริการลง booking_details
+    // Insert booking_details
     $stmt = $conn->prepare("INSERT INTO booking_details (booking_id, service_id, quantity, price) VALUES (?, ?, ?, ?)");
     foreach ($service_ids as $i => $sid) {
         $qty = intval($quantities[$i] ?? 1);
@@ -109,7 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['service_id'])) {
     // ล้างตะกร้า
     unset($_SESSION['cart']);
 
-    echo "<script>alert('จองบริการทั้งหมดเรียบร้อยแล้ว'); window.location.href='user_bookings.php';</script>";
+    echo "<script>
+        alert('จองบริการเรียบร้อยแล้ว\nระยะทางจากร้าน: ".number_format($distance,2)." กม.\nค่าบริการเพิ่มเติม: ".number_format($extra_fee,2)." บาท\nรวมทั้งหมด: ".number_format($total_price_final,2)." บาท');
+        window.location.href='user_bookings.php';
+    </script>";
 
 } else {
     echo "ไม่อนุญาตให้เข้าถึงโดยตรง";

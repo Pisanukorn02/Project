@@ -9,9 +9,9 @@ if (!isset($_GET['booking_id'])) {
 
 $booking_id = intval($_GET['booking_id']);
 
-// ดึงข้อมูลการจอง + ข้อมูลลูกค้า + ชื่อร้าน
+// ดึงข้อมูลการจอง + ข้อมูลลูกค้า + ชื่อร้าน + extra_fee
 $stmt = $conn->prepare("
-    SELECT b.booking_id, b.booking_date, u.name AS customer_name, u.email, u.phone, u.address AS customer_address,
+    SELECT b.booking_id, b.booking_date, b.extra_fee, u.name AS customer_name, u.email, u.phone, u.address AS customer_address,
            sh.shop_name
     FROM bookings b
     JOIN users u ON b.user_id = u.user_id
@@ -102,9 +102,19 @@ $details = $stmt->get_result();
                   </tr>";
         }
         ?>
+        <?php if (!empty($booking['extra_fee']) && $booking['extra_fee'] > 0): ?>
+        <tr>
+            <td colspan="3" style="text-align:right;"><strong>ค่าบริการพิเศษ / ค่าส่ง</strong></td>
+            <td><?= number_format($booking['extra_fee'], 2) ?></td>
+        </tr>
+        <?php endif; ?>
         <tr>
             <td colspan="3"><strong>รวมทั้งหมด</strong></td>
-            <td><strong><?= number_format($total,2) ?></strong></td>
+            <td>
+                <strong>
+                    <?= number_format($total + ($booking['extra_fee'] ?? 0), 2) ?>
+                </strong>
+            </td>
         </tr>
     </table>
 

@@ -22,12 +22,10 @@ if (!empty($start_date) && !empty($end_date)) {
     $types .= "ss";
 }
 
-// รายได้รอรับ
+// รายได้รอรับ (รวม extra_fee)
 $sql_accepted = "
-SELECT SUM(s.price * bd.quantity) AS total 
+SELECT SUM(b.total_price + IFNULL(b.extra_fee,0)) AS total 
 FROM bookings b
-JOIN booking_details bd ON b.booking_id = bd.booking_id
-JOIN services s ON bd.service_id = s.service_id
 WHERE $where_clause AND b.status = 'accepted'
 ";
 $stmt = $conn->prepare($sql_accepted);
@@ -37,12 +35,10 @@ $stmt->bind_result($accepted_total);
 $stmt->fetch();
 $stmt->close();
 
-// รายได้จบงาน
+// รายได้จบงาน (รวม extra_fee)
 $sql_completed = "
-SELECT SUM(s.price * bd.quantity) AS total 
+SELECT SUM(b.total_price + IFNULL(b.extra_fee,0)) AS total 
 FROM bookings b
-JOIN booking_details bd ON b.booking_id = bd.booking_id
-JOIN services s ON bd.service_id = s.service_id
 WHERE $where_clause AND b.status = 'completed'
 ";
 $stmt = $conn->prepare($sql_completed);
@@ -51,8 +47,6 @@ $stmt->execute();
 $stmt->bind_result($completed_total);
 $stmt->fetch();
 $stmt->close();
-
-
 
 // นับจำนวนสถานะงาน
 $status_counts = ['accepted' => 0, 'rejected' => 0, 'completed' => 0];
@@ -66,30 +60,45 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// รายได้รายวัน
-$daily_result = $conn->query("SELECT DATE(booking_date) as date, SUM(price) as total, COUNT(*) as jobs
-FROM bookings
-JOIN services ON bookings.service_id = services.service_id WHERE status='completed'
-AND booking_date BETWEEN '$start_date' AND '$end_date'
-GROUP BY date
-ORDER BY date ASC");
+// รายได้แยกตามวัน
+$daily_result = $conn->query("
+SELECT DATE(b.booking_date) as date, 
+       SUM(b.total_price + IFNULL(b.extra_fee,0)) as total, 
+       COUNT(*) as jobs
+FROM bookings b
+WHERE b.status='completed'
+AND b.shop_id = $shop_id
+AND b.booking_date BETWEEN '$start_date' AND '$end_date'
+GROUP BY DATE(b.booking_date)
+ORDER BY DATE(b.booking_date) ASC
+");
 
-// รายได้รายเดือน
-$monthly_result = $conn->query("SELECT DATE_FORMAT(booking_date,'%M %Y') as month, 
-                                      SUM(price) as total
-                               FROM bookings
-                               JOIN services ON bookings.service_id = services.service_id
-                               WHERE status='completed'
-                               AND booking_date BETWEEN '$start_date' AND '$end_date'
-                               GROUP BY month
-                               ORDER BY booking_date ASC");
+// รายได้แยกตามเดือน
+$monthly_result = $conn->query("
+SELECT DATE_FORMAT(b.booking_date,'%M %Y') as month, 
+       SUM(b.total_price + IFNULL(b.extra_fee,0)) as total
+FROM bookings b
+WHERE b.status='completed'
+AND b.shop_id = $shop_id
+AND b.booking_date BETWEEN '$start_date' AND '$end_date'
+GROUP BY DATE_FORMAT(b.booking_date,'%M %Y')
+ORDER BY MIN(b.booking_date) ASC
+");
 
-// งานที่จบแล้ว
-$sql_jobs = "SELECT b.booking_id, s.service_name, b.created_at, s.price FROM bookings b JOIN services s ON b.service_id = s.service_id WHERE $where_clause AND b.status = 'completed' ORDER BY b.created_at ASC";
+// รายละเอียดงาน
+$sql_jobs = "
+SELECT b.booking_id, s.service_name, b.created_at, (bd.price * bd.quantity + IFNULL(b.extra_fee,0)) AS total_price
+FROM bookings b
+JOIN booking_details bd ON b.booking_id = bd.booking_id
+JOIN services s ON bd.service_id = s.service_id
+WHERE b.shop_id = ? AND b.status = 'completed'
+ORDER BY b.created_at ASC
+";
 $stmt = $conn->prepare($sql_jobs);
-$stmt->bind_param($types, ...$params);
+$stmt->bind_param("i", $shop_id);
 $stmt->execute();
 $jobs_result = $stmt->get_result();
+
 
 
 
@@ -657,7 +666,8 @@ while ($row = $result->fetch_assoc()) {
                         <td><span class="job-id">#B<?= $row['booking_id'] ?></span></td>
                         <td><?= htmlspecialchars($row['service_name']) ?></td>
                         <td><?= date('d/m/Y H:i', strtotime($row['created_at'])) ?></td>
-                        <td class="amount"><?= number_format($row['price'],2) ?></td>
+                        <td class="amount"><?= number_format($row['total_price'],2) ?></td>
+
                     </tr>
                     <?php endwhile; ?>
                 </tbody>

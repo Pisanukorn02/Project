@@ -120,10 +120,14 @@ button.delete { background:#dc3545; color:#fff; }
 <td><?= htmlspecialchars($user['longitude']); ?></td>
 <td><?= htmlspecialchars($user['created_at']); ?></td>
 <td>
+    <?php
+/* 
     <form action="admin_user_edit.php" method="GET">
         <input type="hidden" name="user_id" value="<?= $user['user_id']; ?>">
         <button type="submit" class="action-btn edit">แก้ไข</button>
     </form>
+
+*/    ?>
     <form action="admin_user_action.php" method="POST" onsubmit="return confirm('คุณแน่ใจว่าต้องการลบผู้ใช้นี้?');">
         <input type="hidden" name="user_id" value="<?= $user['user_id']; ?>">
         <button type="submit" name="action" value="delete" class="action-btn delete">ลบ</button>

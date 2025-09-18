@@ -179,6 +179,7 @@
         .btn-approve { background-color: #28a745; }
         .btn-approve:hover { background-color: #218838; }
         .btn-reject { background-color: #dc3545; }
+        .btn-reject1 { background-color: #ffd000; }
         .btn-reject:hover { background-color: #c82333; }
         .btn-complete { background-color: #007bff; }
         .btn-complete:hover { background-color: #0056b3; }
@@ -214,4 +215,221 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.shop-image-box {
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    background: #f9f9f9;
+}
+
+.shop-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.new-badge {
+    background:#dc3545;
+    color:#fff;
+    font-size:10px;
+    padding:2px 5px;
+    border-radius:3px;
+    font-weight:bold;
+    margin-left:5px;
+    animation: blink 1s infinite;
+}
+.new-shop-toast {
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:#dc3545;
+    color:#fff;
+    padding:15px 20px;
+    border-radius:8px;
+    font-weight:bold;
+    z-index:9999;
+}
+@keyframes blink {
+    0% {opacity:1;} 50% {opacity:0.2;} 100% {opacity:1;}
+}
+
+.booking-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: red;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    z-index: 9999;
+    animation: blink 1s infinite;
+}
+@keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0; }
+}
+
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; top: 0; width: 100%; height: 100%; 
+    background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background: #fff; 
+    margin: 10% auto; 
+    padding: 20px; 
+    width: 60%; 
+    border-radius: 8px;
+}
+.close {
+    float: right; 
+    font-size: 24px; 
+    cursor: pointer;
+}
+
+.booking-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #e74c3c;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    z-index: 10000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.booking-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #e74c3c;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    z-index: 10000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    animation: fadeIn 0.5s ease-in-out, blink 1s infinite;
+}
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+@keyframes blink {
+    0%, 100% {opacity: 1;}
+    50% {opacity: 0.4;}
+}
+.booking-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #e74c3c;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    z-index: 9999;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    animation: fadeIn 0.5s ease-in-out, blink 1s infinite;
+}
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+@keyframes blink {
+    0%, 100% {opacity:1;}
+    50% {opacity:0.4;}
+}
+table {width:100%; border-collapse:collapse;}
+th, td {border:1px solid #ccc; padding:8px; text-align:left;}
+th {background:#f4f4f4;}
+td i {margin-left:5px;}
+
+.new-badge {
+    animation: blink 1s infinite;
+    background:#dc3545; 
+    color:#fff; 
+    padding:2px 5px; 
+    border-radius:3px;
+    font-weight:bold;
+}
+
+/* กล่องฟอร์ม */
+.propose-form {
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 20px 25px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-family: "Segoe UI", sans-serif;
+}
+
+/* หัวข้อ */
+.propose-form h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+/* label */
+.propose-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* input */
+.propose-form input[type="date"],
+.propose-form input[type="time"] {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.propose-form input:focus {
+    border-color: #4a90e2;
+}
+
+/* ปุ่ม */
+.propose-form button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: #4a90e2;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.propose-form button:hover {
+    background: #357ab7;
+    transform: translateY(-2px);
+}
+
+.propose-form button:active {
+    transform: translateY(0);
 }

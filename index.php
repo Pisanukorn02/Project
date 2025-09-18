@@ -7,43 +7,57 @@ $query = isset($_GET['query']) ? trim($_GET['query']) : '';
 $province = isset($_GET['province']) ? trim($_GET['province']) : '';
 $service_type = isset($_GET['service_type']) ? trim($_GET['service_type']) : '';
 
-// คำสั่ง SQL เพื่อดึงบริการจากร้านที่ได้รับการอนุมัติแล้ว (is_approved = 0)
-$sql = "SELECT s.*, sh.shop_name, sh.address, sh.province 
-        FROM services s 
-        JOIN shops sh ON s.shop_id = sh.shop_id 
+$params = [];
+$types = "";
+
+// ✅ base query
+$sql = "SELECT s.*, sh.shop_name, sh.address, sh.province
+        FROM services s
+        JOIN shops sh ON s.shop_id = sh.shop_id
         WHERE sh.is_approved = 0";
 
-$params = [];
+// ✅ กรณีล็อกอินแล้ว → ตัดร้านที่บล็อก
+if (isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0) {
+    $user_id = (int)$_SESSION['user_id'];
+    $sql .= " AND sh.shop_id NOT IN (SELECT shop_id FROM blocked_users WHERE user_id = ?)";
+    $params[] = $user_id;
+    $types .= "i";
+}
 
+// ✅ search: ชื่อ/ที่อยู่
 if (!empty($query)) {
     $sql .= " AND (sh.shop_name LIKE ? OR sh.address LIKE ?)";
     $like = "%$query%";
     $params[] = $like;
     $params[] = $like;
+    $types .= "ss";
 }
 
+// ✅ search: จังหวัด
 if (!empty($province)) {
     $sql .= " AND (sh.province LIKE ? OR sh.address LIKE ?)";
     $like_province = "%$province%";
     $params[] = $like_province;
     $params[] = $like_province;
+    $types .= "ss";
 }
 
+// ✅ search: ประเภทบริการ
 if (!empty($service_type)) {
     $sql .= " AND s.service_type = ?";
     $params[] = $service_type;
     $types .= "s";
 }
 
-
+// ✅ prepare + bind
 $stmt = $conn->prepare($sql);
 if ($params) {
-    $types = str_repeat("s", count($params));
     $stmt->bind_param($types, ...$params);
 }
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="th">

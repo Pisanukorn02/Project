@@ -10,12 +10,14 @@ if (!isset($_SESSION['shop_id'])) {
 $shop_id = $_SESSION['shop_id'];
 
 // ดึงข้อมูลจากฟอร์ม
-$shop_name = $_POST['shop_name'] ?? '';
-$phone = $_POST['phone'] ?? '';
-$address = $_POST['address'] ?? '';
-$province = $_POST['province'] ?? '';
-$latitude = $_POST['latitude'] ?? '';
-$longitude = $_POST['longitude'] ?? '';
+$shop_name          = $_POST['shop_name'] ?? '';
+$phone              = $_POST['phone'] ?? '';
+$address            = $_POST['address'] ?? '';
+$province           = $_POST['province'] ?? '';
+$latitude           = $_POST['latitude'] ?? '';
+$longitude          = $_POST['longitude'] ?? '';
+$service_radius     = $_POST['service_radius'] ?? 30; // ค่า default 30 กม.
+$extra_price_per_km = $_POST['extra_price_per_km'] ?? 50; // ค่า default 50 บาท
 
 // ตรวจสอบและอัปโหลดรูปถ้ามี
 $shop_image = '';
@@ -38,12 +40,22 @@ if (isset($_FILES['shop_image']) && $_FILES['shop_image']['error'] === UPLOAD_ER
 // อัปเดตข้อมูลร้านค้า
 if ($shop_image) {
     // ถ้ามีรูปใหม่
-    $stmt = $conn->prepare("UPDATE shops SET shop_name=?, phone=?, address=?, province=?, latitude=?, longitude=?, shop_image=? WHERE shop_id=?");
-    $stmt->bind_param("ssssddsi", $shop_name, $phone, $address, $province, $latitude, $longitude, $shop_image, $shop_id);
+    $stmt = $conn->prepare("UPDATE shops 
+        SET shop_name=?, phone=?, address=?, province=?, latitude=?, longitude=?, shop_image=?, service_radius=?, extra_price_per_km=? 
+        WHERE shop_id=?");
+    $stmt->bind_param(
+        "ssssdddddi",
+        $shop_name, $phone, $address, $province, $latitude, $longitude, $shop_image, $service_radius, $extra_price_per_km, $shop_id
+    );
 } else {
     // ถ้าไม่มีรูปใหม่
-    $stmt = $conn->prepare("UPDATE shops SET shop_name=?, phone=?, address=?, province=?, latitude=?, longitude=? WHERE shop_id=?");
-    $stmt->bind_param("ssssddi", $shop_name, $phone, $address, $province, $latitude, $longitude, $shop_id);
+    $stmt = $conn->prepare("UPDATE shops 
+        SET shop_name=?, phone=?, address=?, province=?, latitude=?, longitude=?, service_radius=?, extra_price_per_km=? 
+        WHERE shop_id=?");
+    $stmt->bind_param(
+        "ssssddddi",
+        $shop_name, $phone, $address, $province, $latitude, $longitude, $service_radius, $extra_price_per_km, $shop_id
+    );
 }
 
 if ($stmt->execute()) {

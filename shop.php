@@ -217,7 +217,20 @@ if (isset($_SESSION['user_id'])) {
         }
 
         .btn-book {
-            background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+            background: linear-gradient(135deg, #be2828ff 0%, #e51e1eff 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(66, 165, 245, 0.4);
+        }
+
+        .btn-book1 {
+            background: linear-gradient(135deg, #0026ffff 0%, rgba(67, 31, 228, 1) 100%);
             color: white;
             padding: 12px 25px;
             border: none;
@@ -549,11 +562,18 @@ if (isset($_SESSION['user_id'])) {
                 <i class="fas fa-tag"></i> ราคา: <?= number_format($row['price']) ?> บาท
             </div>
 
-            <a href="booking_form.php?service_id=<?= $row['service_id']; ?>" class="btn-book">
-                <i class="fas fa-calendar-check"></i> จองบริการนี้
-            </a>
+            <?php if(isset($_SESSION['user_id'])): ?>
+    <a href="booking_form.php?service_id=<?= $row['service_id']; ?>" class="btn-book">
+        <i class="fas fa-calendar-check"></i> จองบริการนี้
+    </a>
+<?php else: ?>
+    <a href="login.html" class="btn-book">
+        <i class="fas fa-sign-in-alt"></i> กรุณาเข้าสู่ระบบก่อนจอง
+    </a>
+<?php endif; ?>
 
-            <a href="add_to_cart.php?service_id=<?= $row['service_id']; ?>" class="btn-cart">
+
+            <a href="add_to_cart.php?service_id=<?= $row['service_id']; ?>" class="btn-book1">
                 <i class="fas fa-shopping-cart"></i> เพิ่มลงตะกร้า
             </a>
         </div>

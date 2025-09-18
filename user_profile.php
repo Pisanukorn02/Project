@@ -21,12 +21,11 @@ $stmt->close();
 // --- ดึงรีวิวของผู้ใช้ ---
 $reviews = [];
 $stmt = $conn->prepare("
-    SELECT r.rating, r.comment, r.created_at, s.service_name, sh.shop_name
+    SELECT r.rating, r.comment, r.created_at, sh.shop_name
     FROM reviews r
     JOIN bookings b ON r.booking_id = b.booking_id
-    JOIN services s ON b.service_id = s.service_id
-    JOIN shops sh ON s.shop_id = sh.shop_id
-    WHERE r.user_id = ?
+    JOIN shops sh ON b.shop_id = sh.shop_id
+    WHERE b.user_id = ?
     ORDER BY r.created_at DESC
 ");
 $stmt->bind_param("i", $user_id);
@@ -37,13 +36,13 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
+
 // --- ดึงประวัติการจองของผู้ใช้ ---
+// bookings: booking_id, user_id, shop_id, booking_date, booking_time, status
 $bookings = [];
 $stmt = $conn->prepare("
-    SELECT b.booking_id, b.booking_date, b.booking_time, b.status,
-           s.service_name, sh.shop_name
+    SELECT b.booking_id, b.booking_date, b.booking_time, b.status, sh.shop_name
     FROM bookings b
-    JOIN services s ON b.service_id = s.service_id
     JOIN shops sh ON b.shop_id = sh.shop_id
     WHERE b.user_id = ?
     ORDER BY b.booking_date DESC, b.booking_time DESC
@@ -424,7 +423,7 @@ $stmt->close();
                     <div class="review-card">
                         <div class="review-header">
                             <div>
-                                <div class="service-name"><?= htmlspecialchars($r['service_name']) ?></div>
+                                <!--<div class="service-name"><?= htmlspecialchars($r['service_name']) ?></div>-->
                                 <div class="shop-name"><?= htmlspecialchars($r['shop_name']) ?></div>
                             </div>
                             <div class="rating">
@@ -495,7 +494,7 @@ $stmt->close();
                     <div class="booking-card">
                         <div class="booking-header">
                             <div>
-                                <div class="service-name"><?= htmlspecialchars($b['service_name']) ?></div>
+                                <!--<div class="service-name"><?= htmlspecialchars($b['service_name']) ?></div>-->
                                 <div class="shop-name"><?= htmlspecialchars($b['shop_name']) ?></div>
                             </div>
                             <div class="status <?= $statusClass ?>"><?= $statusText ?></div>
@@ -527,82 +526,56 @@ $stmt->close();
 </div>
 
 
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-<script>
-    // Initialize map with Phitsanulok coordinates
-    var lat = <?= $latitude ?: 13.7563 ?>;
-var lng = <?= $longitude ?: 100.5018 ?>;
-var map = L.map('map').setView([lat, lng], 13);
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var lat = <?= json_encode($latitude ? floatval($latitude) : 13.7563) ?>;
+      var lng = <?= json_encode($longitude ? floatval($longitude) : 100.5018) ?>;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+      var map = L.map('map').setView([lat, lng], 13);
 
-// สร้าง marker draggable
-var marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
 
-// ฟังก์ชันอัปเดตค่าลง input hidden
-function updateInputs(latlng){
-    document.getElementById('latitude').value = latlng.lat;
-    document.getElementById('longitude').value = latlng.lng;
-}
+      var marker = L.marker([lat, lng], {draggable:true}).addTo(map);
 
-// อัปเดตค่าตอนเริ่มต้น
-updateInputs(marker.getLatLng());
+      function updateInputs(latlng){
+          document.getElementById('latitude').value = latlng.lat;
+          document.getElementById('longitude').value = latlng.lng;
+      }
+      updateInputs(marker.getLatLng());
 
-// ถ้าลาก marker ให้ update
-marker.on('dragend', function(e){
-    updateInputs(e.target.getLatLng());
-});
+      marker.on('dragend', function(e){
+          updateInputs(e.target.getLatLng());
+          getAddress(e.target.getLatLng().lat, e.target.getLatLng().lng);
+      });
 
-// ฟังก์ชันสำหรับดึงที่อยู่จากพิกัด
-function getAddress(lat, lng) {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            const addressField = document.querySelector('textarea[name="address"]');
-            if (data && data.display_name) {
-                addressField.value = data.display_name;
-            } else {
-                addressField.value = "ไม่พบข้อมูลที่อยู่";
-            }
-        })
-        .catch(error => {
-            console.error('เกิดข้อผิดพลาดในการดึงข้อมูลที่อยู่:', error);
-            document.querySelector('textarea[name="address"]').value = "ไม่สามารถดึงข้อมูลที่อยู่ได้";
-        });
-}
+      map.on('click', function(e){
+          marker.setLatLng(e.latlng);
+          updateInputs(e.latlng);
+          getAddress(e.latlng.lat, e.latlng.lng);
+      });
 
-// ถ้าคลิกบน map ให้ marker ย้ายไปตำแหน่งนั้น
-map.on('click', function(e){
-    marker.setLatLng(e.latlng);
-    updateInputs(e.latlng);
-    getAddress(e.latlng.lat, e.latlng.lng);
-});
-
-// Drag marker
-marker.on('dragend', function(e) {
-    var pos = e.target.getLatLng();
-    document.getElementById('latitude').value = pos.lat;
-    document.getElementById('longitude').value = pos.lng;
-    getAddress(pos.lat, pos.lng);
-});
-
-    // Add smooth animations on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const cards = document.querySelectorAll('.review-card, .booking-card');
-        cards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                card.style.transition = 'all 0.6s ease';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100);
-        });
-    });
-</script>
+      function getAddress(lat, lng) {
+          const url = https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng};
+          fetch(url)
+              .then(response => response.json())
+              .then(data => {
+                  const addressField = document.querySelector('textarea[name="address"]');
+                  if (data && data.display_name) {
+                      addressField.value = data.display_name;
+                  } else {
+                      addressField.value = "ไม่พบข้อมูลที่อยู่";
+                  }
+              })
+              .catch(error => {
+                  console.error('เกิดข้อผิดพลาดในการดึงข้อมูลที่อยู่:', error);
+                  document.querySelector('textarea[name="address"]').value = "ไม่สามารถดึงข้อมูลที่อยู่ได้";
+              });
+      }
+  });
+  </script>
 
 </body>
 </html>
